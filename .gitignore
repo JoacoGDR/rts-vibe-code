@@ -1,0 +1,45 @@
+# Build artifacts
+/bin/
+/dist/
+*.exe
+*.test
+*.out
+coverage.*
+
+# Local Go toolchain (workspace-installed for sandboxed envs)
+/.tools/
+
+# Environment
+.env
+.env.local
+*.local
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node / web
+node_modules/
+web/dist/
+web/.vite/
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!example.tfvars
+.terraform.lock.hcl
+
+# Logs
+*.log
+
+# Skill / cursor metadata (kept out of source)
+skills-lock.json
+.agents/

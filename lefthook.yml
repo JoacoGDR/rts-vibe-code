@@ -1,0 +1,60 @@
+# lefthook config: runs the cheap subset of CI gates locally before each
+# commit. Install with `lefthook install` once.
+#
+# To skip on a given commit: `LEFTHOOK=0 git commit ...`.
+
+pre-commit:
+  parallel: true
+  commands:
+    gofmt:
+      glob: "*.go"
+      run: |
+        unformatted=$(gofmt -l {staged_files})
+        if [ -n "$unformatted" ]; then
+          echo "gofmt found unformatted Go files:"
+          echo "$unformatted"
+          echo "Run: gofmt -w ."
+          exit 1
+        fi
+    goimports:
+      glob: "*.go"
+      run: |
+        if ! command -v goimports >/dev/null 2>&1; then
+          echo "skipping goimports (install with: go install golang.org/x/tools/cmd/goimports@latest)"
+          exit 0
+        fi
+        unformatted=$(goimports -l {staged_files})
+        if [ -n "$unformatted" ]; then
+          echo "goimports found unsorted imports:"
+          echo "$unformatted"
+          echo "Run: goimports -w ."
+          exit 1
+        fi
+    golangci-lint:
+      glob: "*.go"
+      run: |
+        if ! command -v golangci-lint >/dev/null 2>&1; then
+          echo "skipping golangci-lint (install: https://golangci-lint.run)"
+          exit 0
+        fi
+        golangci-lint run --new-from-rev=main ./cmd/... ./internal/... ./pkg/...
+    web-lint:
+      glob: "web/**/*.{ts,tsx,js,css,json}"
+      run: |
+        if [ ! -d web/node_modules ]; then
+          echo "skipping web lint (run: cd web && npm install)"
+          exit 0
+        fi
+        cd web && npm run lint
+    web-format:
+      glob: "web/**/*.{ts,tsx,js,css,json}"
+      run: |
+        if [ ! -d web/node_modules ]; then
+          exit 0
+        fi
+        cd web && npm run format:check
+
+pre-push:
+  commands:
+    go-test:
+      run: go test -count=1 -short ./cmd/... ./internal/... ./pkg/...

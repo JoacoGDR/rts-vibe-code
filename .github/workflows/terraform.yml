@@ -1,0 +1,38 @@
+name: Terraform plan/apply
+
+# Scaffolded for Phase 7. Manual dispatch with explicit env target.
+
+on:
+  workflow_dispatch:
+    inputs:
+      env:
+        description: "Environment (dev|prod)"
+        required: true
+        default: dev
+      action:
+        description: "plan or apply"
+        required: true
+        default: plan
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  terraform:
+    if: false # Phase 7 will flip this on
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+      - name: Init
+        run: terraform -chdir=terraform/envs/${{ inputs.env }} init
+      - name: ${{ inputs.action }}
+        run: terraform -chdir=terraform/envs/${{ inputs.env }} ${{ inputs.action }} -auto-approve

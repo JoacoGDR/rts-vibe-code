@@ -1,0 +1,157 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  default: standard
+  enable:
+    - depguard
+    - errcheck
+    - funlen
+    - gocritic
+    - gocyclo
+    - gosec
+    - govet
+    - ineffassign
+    - lll
+    - misspell
+    - nilerr
+    - revive
+    - staticcheck
+    - unconvert
+    - unparam
+    - unused
+
+  settings:
+    revive:
+      rules:
+        - name: var-naming
+        - name: error-return
+        - name: error-naming
+        - name: exported
+          disabled: true
+
+    funlen:
+      lines: 80
+      statements: 50
+
+    gocyclo:
+      min-complexity: 15
+
+    lll:
+      line-length: 140
+      tab-width: 4
+
+    depguard:
+      rules:
+        # Domain stays pure: no infra, no service, no app, no other binary
+        # modes, no deprecated coreapi/match packages.
+        domain-purity:
+          list-mode: lax
+          files:
+            - "**/internal/domain/**/*.go"
+          deny:
+            - pkg: github.com/joaquing/clone-supremacy/internal/adapter
+              desc: "domain layer may not import adapters"
+            - pkg: github.com/joaquing/clone-supremacy/internal/platform
+              desc: "domain layer may not import platform infra"
+            - pkg: github.com/joaquing/clone-supremacy/internal/service
+              desc: "domain layer may not import services"
+            - pkg: github.com/joaquing/clone-supremacy/internal/app
+              desc: "domain layer may not import the composition root"
+            - pkg: github.com/joaquing/clone-supremacy/internal/coreapi
+              desc: "internal/coreapi has been removed; use service+adapter+app instead"
+            - pkg: github.com/joaquing/clone-supremacy/internal/engine
+              desc: "domain may not depend on a binary mode package"
+            - pkg: github.com/joaquing/clone-supremacy/internal/gateway
+              desc: "domain may not depend on a binary mode package"
+            - pkg: github.com/joaquing/clone-supremacy/internal/worker
+              desc: "domain may not depend on a binary mode package"
+            - pkg: github.com/joaquing/clone-supremacy/internal/match
+              desc: "internal/match has been removed; use lobbydom+pgrepo"
+            - pkg: github.com/joaquing/clone-supremacy/internal/observability
+              desc: "internal/observability has been removed; use platform/log+metrics"
+            - pkg: github.com/joaquing/clone-supremacy/internal/storage
+              desc: "domain may not depend on storage"
+
+        # Service layer may use domain + pkg + platform (logging/metrics
+        # only). It must not import adapters (consumer-defined interfaces
+        # belong here) or the composition root.
+        service-rules:
+          list-mode: lax
+          files:
+            - "**/internal/service/**/*.go"
+          deny:
+            - pkg: github.com/joaquing/clone-supremacy/internal/app
+              desc: "service must not depend on the composition root"
+            - pkg: github.com/joaquing/clone-supremacy/internal/coreapi
+              desc: "internal/coreapi has been removed"
+            - pkg: github.com/joaquing/clone-supremacy/internal/engine
+              desc: "service must not depend on binary mode packages"
+            - pkg: github.com/joaquing/clone-supremacy/internal/gateway
+              desc: "service must not depend on binary mode packages"
+            - pkg: github.com/joaquing/clone-supremacy/internal/worker
+              desc: "service must not depend on binary mode packages"
+            - pkg: github.com/joaquing/clone-supremacy/internal/match
+              desc: "internal/match has been removed; use lobbydom+pgrepo"
+            - pkg: github.com/joaquing/clone-supremacy/internal/observability
+              desc: "internal/observability has been removed"
+
+        # Driven adapters (pgrepo, redisrepo, natsbridge) must not import
+        # services. Driving adapters (httpapi controllers) are the
+        # exception: they exist to call into services. They are excluded
+        # from the deny list via the files pattern (httpapi is allowed to
+        # depend on service for that reason).
+        adapter-rules:
+          list-mode: lax
+          files:
+            - "**/internal/adapter/**/*.go"
+            - "!**/internal/adapter/httpapi/**/*.go"
+          deny:
+            - pkg: github.com/joaquing/clone-supremacy/internal/service
+              desc: "driven adapters must not import services; services own the interfaces adapters fulfil"
+            - pkg: github.com/joaquing/clone-supremacy/internal/app
+              desc: "adapter must not import the composition root"
+            - pkg: github.com/joaquing/clone-supremacy/internal/coreapi
+              desc: "internal/coreapi has been removed"
+            - pkg: github.com/joaquing/clone-supremacy/internal/match
+              desc: "internal/match has been removed"
+            - pkg: github.com/joaquing/clone-supremacy/internal/observability
+              desc: "internal/observability has been removed"
+
+        # httpapi (driving adapters) may call services but still must not
+        # import the composition root.
+        httpapi-rules:
+          list-mode: lax
+          files:
+            - "**/internal/adapter/httpapi/**/*.go"
+          deny:
+            - pkg: github.com/joaquing/clone-supremacy/internal/app
+              desc: "controllers must not import the composition root"
+            - pkg: github.com/joaquing/clone-supremacy/internal/coreapi
+              desc: "internal/coreapi has been removed"
+            - pkg: github.com/joaquing/clone-supremacy/internal/match
+              desc: "internal/match has been removed"
+
+        # pkg/ is meant to be importable from outside the repo: it must
+        # never reach into internal/.
+        pkg-rules:
+          list-mode: lax
+          files:
+            - "**/pkg/**/*.go"
+          deny:
+            - pkg: github.com/joaquing/clone-supremacy/internal
+              desc: "pkg/ must not depend on internal/"
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  # Tests have looser budgets — table-driven tests trip funlen quickly.
+  uniq-by-line: true

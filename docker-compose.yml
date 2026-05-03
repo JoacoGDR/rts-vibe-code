@@ -1,0 +1,193 @@
+# Shared image build: every app service must list `build` or Compose tries to
+# pull `supremacy:dev` from a registry (pull access denied).
+x-supremacy-build: &supremacy-build
+  context: .
+  dockerfile: Dockerfile
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: supremacy
+      POSTGRES_USER: supremacy
+      POSTGRES_PASSWORD: supremacy
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U supremacy -d supremacy"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  nats:
+    image: nats:2.10-alpine
+    command: ["-js", "-sd", "/data", "-m", "8222"]
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    volumes:
+      - nats-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8222/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Mailpit catches every email the notification worker sends in dev.
+  # Open http://localhost:8025 to inspect the inbox; SMTP is on :1025.
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    environment:
+      MP_MAX_MESSAGES: 5000
+
+  core-api:
+    build: *supremacy-build
+    image: supremacy:dev
+    command: ["core-api"]
+    environment:
+      ENV: dev
+      LOG_LEVEL: debug
+      LOG_FORMAT: text
+      HTTP_ADDR: ":8080"
+      METRICS_ADDR: ":9100"
+      DATABASE_URL: postgres://supremacy:supremacy@postgres:5432/supremacy?sslmode=disable
+      REDIS_URL: redis://redis:6379/0
+      NATS_URL: nats://nats:4222
+      JWT_SECRET: dev-only-secret-change-me
+      BOT_API_KEY: dev-only-bot-key-change-me
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+      - "9100:9100"
+
+  gateway:
+    build: *supremacy-build
+    image: supremacy:dev
+    command: ["gateway"]
+    environment:
+      ENV: dev
+      LOG_LEVEL: debug
+      LOG_FORMAT: text
+      HTTP_ADDR: ":8081"
+      METRICS_ADDR: ":9101"
+      REDIS_URL: redis://redis:6379/0
+      NATS_URL: nats://nats:4222
+      JWT_SECRET: dev-only-secret-change-me
+    depends_on:
+      core-api:
+        condition: service_started
+      nats:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+      - "9101:9101"
+
+  engine:
+    build: *supremacy-build
+    image: supremacy:dev
+    command: ["engine"]
+    environment:
+      ENV: dev
+      LOG_LEVEL: debug
+      LOG_FORMAT: text
+      HTTP_ADDR: ":8082"
+      METRICS_ADDR: ":9102"
+      DATABASE_URL: postgres://supremacy:supremacy@postgres:5432/supremacy?sslmode=disable
+      REDIS_URL: redis://redis:6379/0
+      NATS_URL: nats://nats:4222
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    ports:
+      - "8082:8082"
+      - "9102:9102"
+
+  worker:
+    build: *supremacy-build
+    image: supremacy:dev
+    command: ["worker"]
+    environment:
+      ENV: dev
+      LOG_LEVEL: debug
+      LOG_FORMAT: text
+      HTTP_ADDR: ":8083"
+      METRICS_ADDR: ":9103"
+      DATABASE_URL: postgres://supremacy:supremacy@postgres:5432/supremacy?sslmode=disable
+      REDIS_URL: redis://redis:6379/0
+      NATS_URL: nats://nats:4222
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_FROM: notifications@supremacy.local
+      NOTIFY_POLL_INTERVAL: 10s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    ports:
+      - "8083:8083"
+      - "9103:9103"
+
+  ai-bot:
+    build: *supremacy-build
+    image: supremacy:dev
+    command: ["ai-bot"]
+    environment:
+      ENV: dev
+      LOG_LEVEL: debug
+      LOG_FORMAT: text
+      HTTP_ADDR: ":8084"
+      METRICS_ADDR: ":9104"
+      DATABASE_URL: postgres://supremacy:supremacy@postgres:5432/supremacy?sslmode=disable
+      JWT_SECRET: dev-only-secret-change-me
+      BOT_API_KEY: dev-only-bot-key-change-me
+      AI_BOT_CORE_API_URL: http://core-api:8080
+      AI_BOT_GATEWAY_URL: ws://gateway:8081
+      AI_POLL_INTERVAL: 30s
+    depends_on:
+      core-api:
+        condition: service_started
+      gateway:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8084:8084"
+      - "9104:9104"
+
+volumes:
+  postgres-data:
+  redis-data:
+  nats-data:

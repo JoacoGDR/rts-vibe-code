@@ -1,0 +1,20 @@
+id: tiny-2p
+name: Tiny 2-Player
+provinces:
+  - { id: A, name: Alpha,    x: 100, y: 100 }
+  - { id: B, name: Bravo,    x: 700, y: 100 }
+  - { id: C, name: Charlie,  x: 100, y: 500 }
+  - { id: D, name: Delta,    x: 700, y: 500 }
+edges:
+  - { from: A, to: B }
+  - { from: A, to: C }
+  - { from: B, to: D }
+  - { from: C, to: D }
+  - { from: A, to: D }
+  - { from: B, to: C }
+slots:
+  - { id: red,  color: "#e8523a", capital: A }
+  - { id: blue, color: "#3a8ce8", capital: D }
+starting_units:
+  - { slot: red,  type: infantry, province: A, hp: 100 }
+  - { slot: blue, type: infantry, province: D, hp: 100 }

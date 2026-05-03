@@ -1,0 +1,25 @@
+id: tiny-3p
+name: Tiny 3-Player
+provinces:
+  - { id: A, name: Alpha,   x: 100, y: 100 }
+  - { id: B, name: Bravo,   x: 700, y: 100 }
+  - { id: C, name: Charlie, x: 400, y: 500 }
+  - { id: D, name: Delta,   x: 100, y: 500 }
+  - { id: E, name: Echo,    x: 700, y: 500 }
+  - { id: F, name: Foxtrot, x: 400, y: 100 }
+edges:
+  - { from: A, to: F }
+  - { from: F, to: B }
+  - { from: A, to: D }
+  - { from: B, to: E }
+  - { from: D, to: C }
+  - { from: E, to: C }
+  - { from: F, to: C }
+slots:
+  - { id: red,    color: "#e8523a", capital: A }
+  - { id: blue,   color: "#3a8ce8", capital: B }
+  - { id: green,  color: "#3ae87a", capital: C }
+starting_units:
+  - { slot: red,   type: infantry, province: A, hp: 100 }
+  - { slot: blue,  type: infantry, province: B, hp: 100 }
+  - { slot: green, type: infantry, province: C, hp: 100 }
