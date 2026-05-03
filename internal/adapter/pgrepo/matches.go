@@ -43,13 +43,19 @@ func (r *Matches) Get(ctx context.Context, id uuid.UUID) (lobbydom.Match, error)
 	return m, err
 }
 
-func (r *Matches) ListForUser(ctx context.Context, userID uuid.UUID) ([]lobbydom.Match, error) {
+// ListLobby returns matches visible in the lobby: every match still in
+// waiting (discoverable join targets) plus any match the user already
+// participates in (waiting, active, or ended).
+func (r *Matches) ListLobby(ctx context.Context, userID uuid.UUID) ([]lobbydom.Match, error) {
 	rows, err := r.pool.Query(ctx, `
         SELECT m.id, m.name, m.map_id, m.status, m.created_by, m.created_at,
                m.started_at, m.ended_at, m.winner_user_id, m.speed_factor
         FROM matches m
-        JOIN match_players mp ON mp.match_id = m.id
-        WHERE mp.user_id = $1
+        WHERE m.status = 'waiting'
+           OR EXISTS (
+               SELECT 1 FROM match_players mp
+               WHERE mp.match_id = m.id AND mp.user_id = $1
+           )
         ORDER BY m.created_at DESC`, userID)
 	if err != nil {
 		return nil, err

@@ -18,7 +18,7 @@ import (
 type MatchesRepository interface {
 	Create(ctx context.Context, name, mapID string, createdBy uuid.UUID, speed float64) (lobbydom.Match, error)
 	Get(ctx context.Context, id uuid.UUID) (lobbydom.Match, error)
-	ListForUser(ctx context.Context, userID uuid.UUID) ([]lobbydom.Match, error)
+	ListLobby(ctx context.Context, userID uuid.UUID) ([]lobbydom.Match, error)
 	AddPlayer(ctx context.Context, p lobbydom.Player) error
 	ListPlayers(ctx context.Context, matchID uuid.UUID) ([]lobbydom.Player, error)
 	MarkActive(ctx context.Context, id uuid.UUID) error
@@ -200,9 +200,10 @@ func (s *Service) Get(ctx context.Context, id uuid.UUID) (MatchView, error) {
 	return view, nil
 }
 
-// ListForUser returns every match the given user is a participant in.
-func (s *Service) ListForUser(ctx context.Context, userID uuid.UUID) ([]MatchView, error) {
-	ms, err := s.repo.ListForUser(ctx, userID)
+// ListLobby returns lobby-visible matches: all waiting games (joinable by
+// anyone) plus any match the user is already a player in.
+func (s *Service) ListLobby(ctx context.Context, userID uuid.UUID) ([]MatchView, error) {
+	ms, err := s.repo.ListLobby(ctx, userID)
 	if err != nil {
 		return nil, errs.Wrap(err, errs.Internal, "listing matches")
 	}

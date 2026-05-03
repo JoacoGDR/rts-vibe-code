@@ -110,7 +110,7 @@ func (c *MatchController) List(w http.ResponseWriter, r *http.Request) {
 		render.Err(w, err)
 		return
 	}
-	views, err := c.svc.ListForUser(r.Context(), uid)
+	views, err := c.svc.ListLobby(r.Context(), uid)
 	if err != nil {
 		render.Err(w, err)
 		return
