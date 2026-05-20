@@ -18,6 +18,7 @@ func (r *Registry) DeclareWar(from, target string, now time.Time) error {
 	}
 	r.upsert(from, target, War, PendingNone, "", now, from)
 	r.revokeAllBetween(from, target)
+	r.bumpVersion()
 	return nil
 }
 
@@ -57,6 +58,7 @@ func (r *Registry) GrantPact(from, to string, kind PactKind, now time.Time) erro
 		return ErrPactAlreadyGiven
 	}
 	r.pacts[k] = &Pact{From: from, To: to, Kind: kind, GrantedAt: now}
+	r.bumpVersion()
 	return nil
 }
 
@@ -71,6 +73,7 @@ func (r *Registry) RevokePact(from, to string, kind PactKind) error {
 		return ErrPactMissing
 	}
 	delete(r.pacts, k)
+	r.bumpVersion()
 	return nil
 }
 
@@ -118,16 +121,22 @@ func (r *Registry) upsert(a, b string, stance Stance, pending Pending, pendingFr
 	if changeFrom != "" {
 		t.LastChangeFrom = changeFrom
 	}
+	r.bumpVersion()
 }
 
 // revokeAllBetween clears every directional pact in either direction
 // between the two slots. Called when war breaks out so share-map and
 // right-of-way grants do not silently survive a hostile turn.
 func (r *Registry) revokeAllBetween(a, b string) {
+	changed := false
 	for k := range r.pacts {
 		if (k.From == a && k.To == b) || (k.From == b && k.To == a) {
 			delete(r.pacts, k)
+			changed = true
 		}
+	}
+	if changed {
+		r.bumpVersion()
 	}
 }
 

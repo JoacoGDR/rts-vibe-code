@@ -25,9 +25,7 @@ func Run(ctx context.Context, cfg config.Config, logger *slog.Logger, mreg *metr
 		return err
 	}
 	defer pool.Close()
-	if err := storage.Migrate(ctx, pool); err != nil {
-		return err
-	}
+	// Schema migrations run in core-api only.
 
 	core := NewCoreClient(cfg.AIBotCoreAPIURL, cfg.BotAPIKey)
 	runner := NewRunner(logger, mreg, pgrepo.NewMatches(pool), core, cfg.AIBotGatewayURL, cfg.AIPollInterval)

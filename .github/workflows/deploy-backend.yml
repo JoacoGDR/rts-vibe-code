@@ -32,6 +32,8 @@ jobs:
         run: |
           docker build -t $ECR_REGISTRY/supremacy:${{ inputs.image_tag }} .
           docker push $ECR_REGISTRY/supremacy:${{ inputs.image_tag }}
+          # Image contains /usr/local/bin/{core-api,gateway,engine,worker,ai-bot,supremacy}.
+          # K8s manifests set command per Deployment (see rollout step).
 
   rollout:
     if: false # Phase 7
@@ -41,7 +43,9 @@ jobs:
       - name: Update K8s deployment
         run: |
           aws eks update-kubeconfig --name supremacy --region us-east-1
-          kubectl set image deployment/core-api supremacy=$ECR_REGISTRY/supremacy:${{ inputs.image_tag }}
-          kubectl set image deployment/gateway supremacy=$ECR_REGISTRY/supremacy:${{ inputs.image_tag }}
-          kubectl set image statefulset/engine supremacy=$ECR_REGISTRY/supremacy:${{ inputs.image_tag }}
-          kubectl set image deployment/worker supremacy=$ECR_REGISTRY/supremacy:${{ inputs.image_tag }}
+          IMG=$ECR_REGISTRY/supremacy:${{ inputs.image_tag }}
+          kubectl set image deployment/core-api core-api=$IMG
+          kubectl set image deployment/gateway gateway=$IMG
+          kubectl set image statefulset/engine engine=$IMG
+          kubectl set image deployment/worker worker=$IMG
+          kubectl set image deployment/ai-bot ai-bot=$IMG

@@ -7,16 +7,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// Status is the lobby lifecycle phase. Transitions are: waiting →
-// active → ended.
-type Status string
-
-const (
-	StatusWaiting Status = "waiting"
-	StatusActive  Status = "active"
-	StatusEnded   Status = "ended"
-)
-
 // Match is the lobby/persistence record. The engine has its own in-memory
 // [matchdom.Match] aggregate; this type is what core-api hands the
 // frontend before (and during) a session.
@@ -56,5 +46,9 @@ var (
 	ErrAlreadyRunning   = errors.New("match already started")
 	ErrNotEnoughPlayers = errors.New("match needs at least 2 players")
 	ErrSlotTaken        = errors.New("slot is already taken")
-	ErrNoFreeSlot       = errors.New("no free slot available")
+	ErrNoFreeSlot          = errors.New("no free slot available")
+	ErrInvalidTransition   = errors.New("invalid status transition")
+	ErrNotCreator          = errors.New("only the match creator may perform this action")
+	ErrCannotLeaveActive   = errors.New("use handoff to leave an active match")
+	ErrPlayerNotInMatch    = errors.New("player is not in this match")
 )

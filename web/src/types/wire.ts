@@ -1,5 +1,7 @@
 // Mirrors pkg/shared/wire/messages.go. Keep field names in sync.
 
+export const WIRE_VERSION = 3;
+
 export type ClientMessageType = "hello" | "command" | "ping" | "resync" | "chat" | "goodbye";
 export type ServerMessageType = "hello_ack" | "state" | "event" | "chat" | "error" | "pong";
 
@@ -15,6 +17,7 @@ export interface ClientCommand {
 
 export interface ClientEnvelope {
   type: ClientMessageType;
+  wire_version?: number;
   id?: string;
   match_id?: string;
   command?: ClientCommand;
@@ -123,6 +126,16 @@ export interface ProvinceState {
   capital?: boolean;
 }
 
+export interface PathLegState {
+  from_prov?: string;
+  to_prov?: string;
+  from_x?: number;
+  from_y?: number;
+  to_x?: number;
+  to_y?: number;
+  arrives_at?: string;
+}
+
 export interface UnitState {
   id: string;
   owner_id: string;
@@ -134,6 +147,8 @@ export interface UnitState {
   dest?: string;
   started_at?: string;
   arrives_at?: string;
+  path?: PathLegState[];
+  path_index?: number;
 }
 
 export interface PlayerState {

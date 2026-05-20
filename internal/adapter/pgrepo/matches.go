@@ -201,13 +201,6 @@ type InactiveSlot struct {
 	LastSeenAt *time.Time
 }
 
-func (r *Matches) MarkActive(ctx context.Context, id uuid.UUID) error {
-	_, err := r.pool.Exec(ctx, `
-        UPDATE matches SET status = 'active', started_at = now()
-        WHERE id = $1 AND status = 'waiting'`, id)
-	return err
-}
-
 func (r *Matches) MarkEnded(ctx context.Context, id uuid.UUID, winner *uuid.UUID) error {
 	_, err := r.pool.Exec(ctx, `
         UPDATE matches SET status = 'ended', ended_at = now(), winner_user_id = $2

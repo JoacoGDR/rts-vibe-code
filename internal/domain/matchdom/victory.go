@@ -3,6 +3,8 @@ package matchdom
 import (
 	"sort"
 	"time"
+
+	"github.com/joaquing/clone-supremacy/internal/domain/timeline"
 )
 
 // checkVictory inspects capital ownership and ends the match when only
@@ -52,6 +54,10 @@ func (m *Match) checkVictory(at time.Time) []AppliedEvent {
 	m.WinnerSlot = coalID
 	m.WinnerCoal = winners
 	m.Seq++
+	m.Timeline.Push(&timeline.Event{
+		At:   at.Add(CleanupDelay),
+		Kind: timeline.MatchCleanup,
+	})
 	return []AppliedEvent{{
 		Kind: "match_ended", OccurAt: at, Seq: m.Seq, Slot: coalID,
 		Extra: map[string]any{

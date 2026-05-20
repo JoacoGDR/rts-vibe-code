@@ -1,0 +1,95 @@
+id: classic-4p
+name: "Classic 4-Player"
+rules_summary: "4 commanders · 8 provinces each · continental war"
+provinces:
+  - { id: R_CAP, name: 'R Capital', x: 72.5, y: 145.0, home_slot: red }
+  - { id: R02, name: 'R 02', x: 157.5, y: 145.0, home_slot: red }
+  - { id: R03, name: 'R 03', x: 242.5, y: 145.0, home_slot: red }
+  - { id: R04, name: 'R 04', x: 327.5, y: 145.0, home_slot: red }
+  - { id: R05, name: 'R 05', x: 72.5, y: 215.0, home_slot: red }
+  - { id: R06, name: 'R 06', x: 157.5, y: 215.0, home_slot: red }
+  - { id: R07, name: 'R 07', x: 242.5, y: 215.0, home_slot: red }
+  - { id: R08, name: 'R 08', x: 327.5, y: 215.0, home_slot: red }
+  - { id: B_CAP, name: 'B Capital', x: 1127.5, y: 145.0, home_slot: blue }
+  - { id: B02, name: 'B 02', x: 1042.5, y: 145.0, home_slot: blue }
+  - { id: B03, name: 'B 03', x: 957.5, y: 145.0, home_slot: blue }
+  - { id: B04, name: 'B 04', x: 872.5, y: 145.0, home_slot: blue }
+  - { id: B05, name: 'B 05', x: 1127.5, y: 215.0, home_slot: blue }
+  - { id: B06, name: 'B 06', x: 1042.5, y: 215.0, home_slot: blue }
+  - { id: B07, name: 'B 07', x: 957.5, y: 215.0, home_slot: blue }
+  - { id: B08, name: 'B 08', x: 872.5, y: 215.0, home_slot: blue }
+  - { id: G_CAP, name: 'G Capital', x: 72.5, y: 755.0, home_slot: green }
+  - { id: G02, name: 'G 02', x: 157.5, y: 755.0, home_slot: green }
+  - { id: G03, name: 'G 03', x: 242.5, y: 755.0, home_slot: green }
+  - { id: G04, name: 'G 04', x: 327.5, y: 755.0, home_slot: green }
+  - { id: G05, name: 'G 05', x: 72.5, y: 685.0, home_slot: green }
+  - { id: G06, name: 'G 06', x: 157.5, y: 685.0, home_slot: green }
+  - { id: G07, name: 'G 07', x: 242.5, y: 685.0, home_slot: green }
+  - { id: G08, name: 'G 08', x: 327.5, y: 685.0, home_slot: green }
+  - { id: Y_CAP, name: 'Y Capital', x: 1127.5, y: 755.0, home_slot: yellow }
+  - { id: Y02, name: 'Y 02', x: 1042.5, y: 755.0, home_slot: yellow }
+  - { id: Y03, name: 'Y 03', x: 957.5, y: 755.0, home_slot: yellow }
+  - { id: Y04, name: 'Y 04', x: 872.5, y: 755.0, home_slot: yellow }
+  - { id: Y05, name: 'Y 05', x: 1127.5, y: 685.0, home_slot: yellow }
+  - { id: Y06, name: 'Y 06', x: 1042.5, y: 685.0, home_slot: yellow }
+  - { id: Y07, name: 'Y 07', x: 957.5, y: 685.0, home_slot: yellow }
+  - { id: Y08, name: 'Y 08', x: 872.5, y: 685.0, home_slot: yellow }
+edges:
+  - { from: B02, to: B03 }
+  - { from: B02, to: B06 }
+  - { from: B02, to: B_CAP }
+  - { from: B02, to: R08 }
+  - { from: B03, to: B04 }
+  - { from: B03, to: B07 }
+  - { from: B04, to: B08 }
+  - { from: B04, to: Y05 }
+  - { from: B05, to: B06 }
+  - { from: B05, to: B_CAP }
+  - { from: B05, to: R04 }
+  - { from: B06, to: B07 }
+  - { from: B07, to: B08 }
+  - { from: B08, to: Y02 }
+  - { from: G02, to: G03 }
+  - { from: G02, to: G06 }
+  - { from: G02, to: G_CAP }
+  - { from: G03, to: G04 }
+  - { from: G03, to: G07 }
+  - { from: G04, to: G08 }
+  - { from: G04, to: R05 }
+  - { from: G04, to: Y05 }
+  - { from: G05, to: G06 }
+  - { from: G05, to: G_CAP }
+  - { from: G06, to: G07 }
+  - { from: G07, to: G08 }
+  - { from: G08, to: Y02 }
+  - { from: G_CAP, to: R_CAP }
+  - { from: R02, to: R03 }
+  - { from: R02, to: R06 }
+  - { from: R02, to: R_CAP }
+  - { from: R03, to: R04 }
+  - { from: R03, to: R07 }
+  - { from: R04, to: R08 }
+  - { from: R05, to: R06 }
+  - { from: R05, to: R_CAP }
+  - { from: R06, to: R07 }
+  - { from: R07, to: R08 }
+  - { from: Y02, to: Y03 }
+  - { from: Y02, to: Y06 }
+  - { from: Y02, to: Y_CAP }
+  - { from: Y03, to: Y04 }
+  - { from: Y03, to: Y07 }
+  - { from: Y04, to: Y08 }
+  - { from: Y05, to: Y06 }
+  - { from: Y05, to: Y_CAP }
+  - { from: Y06, to: Y07 }
+  - { from: Y07, to: Y08 }
+slots:
+  - { id: red, color: "#e8523a", capital: R_CAP }
+  - { id: blue, color: "#3a8ce8", capital: B_CAP }
+  - { id: green, color: "#3ae87a", capital: G_CAP }
+  - { id: yellow, color: "#e8c43a", capital: Y_CAP }
+starting_units:
+  - { slot: red, type: infantry, province: R_CAP, hp: 100 }
+  - { slot: blue, type: infantry, province: B_CAP, hp: 100 }
+  - { slot: green, type: infantry, province: G_CAP, hp: 100 }
+  - { slot: yellow, type: infantry, province: Y_CAP, hp: 100 }

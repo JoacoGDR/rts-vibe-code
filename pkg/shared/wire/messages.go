@@ -8,6 +8,10 @@ package wire
 
 import "time"
 
+// WireVersion is bumped when the JSON contract changes incompatibly.
+// Clients should send it in hello and refuse mismatched servers.
+const WireVersion = 3
+
 type ClientMessageType string
 
 const (
@@ -31,9 +35,10 @@ const (
 )
 
 type ClientEnvelope struct {
-	Type      ClientMessageType `json:"type"`
-	ID        string            `json:"id,omitempty"`
-	MatchID   string            `json:"match_id,omitempty"`
+	Type        ClientMessageType `json:"type"`
+	WireVersion int               `json:"wire_version,omitempty"`
+	ID          string            `json:"id,omitempty"`
+	MatchID     string            `json:"match_id,omitempty"`
 	Command   *Command          `json:"command,omitempty"`
 	Chat      *ChatOutbound     `json:"chat,omitempty"`
 	ResyncSeq uint64            `json:"resync_seq,omitempty"`
@@ -169,17 +174,29 @@ type ProvinceState struct {
 	Capital bool    `json:"capital,omitempty"`
 }
 
-type UnitState struct {
-	ID        string    `json:"id"`
-	OwnerID   string    `json:"owner_id"`
-	Type      string    `json:"type"`
-	X         float64   `json:"x"`
-	Y         float64   `json:"y"`
-	HP        float64   `json:"hp"`
-	Origin    string    `json:"origin,omitempty"`
-	Dest      string    `json:"dest,omitempty"`
-	StartedAt time.Time `json:"started_at,omitempty"`
+type PathLegState struct {
+	FromProv  string    `json:"from_prov,omitempty"`
+	ToProv    string    `json:"to_prov,omitempty"`
+	FromX     float64   `json:"from_x,omitempty"`
+	FromY     float64   `json:"from_y,omitempty"`
+	ToX       float64   `json:"to_x,omitempty"`
+	ToY       float64   `json:"to_y,omitempty"`
 	ArrivesAt time.Time `json:"arrives_at,omitempty"`
+}
+
+type UnitState struct {
+	ID        string         `json:"id"`
+	OwnerID   string         `json:"owner_id"`
+	Type      string         `json:"type"`
+	X         float64        `json:"x"`
+	Y         float64        `json:"y"`
+	HP        float64        `json:"hp"`
+	Origin    string         `json:"origin,omitempty"`
+	Dest      string         `json:"dest,omitempty"`
+	StartedAt time.Time      `json:"started_at,omitempty"`
+	ArrivesAt time.Time      `json:"arrives_at,omitempty"`
+	Path      []PathLegState `json:"path,omitempty"`
+	PathIndex int            `json:"path_index,omitempty"`
 }
 
 type PlayerState struct {

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { ApiError, authApi } from "../../api";
+import { Button, Panel } from "../../components/ui";
 import { useAppStore } from "../../app/store";
 
 export function Login() {
@@ -30,14 +31,13 @@ export function Login() {
   }
 
   return (
-    <div className="auth-card">
-      <h2>{mode === "login" ? "Sign in" : "Create account"}</h2>
+    <Panel title={mode === "login" ? "Sign in" : "Create account"} className="auth-card">
       <form onSubmit={submit}>
-        <label>
+        <label className="field">
           Email
           <input value={email} onChange={(e) => setEmail(e.target.value)} required />
         </label>
-        <label>
+        <label className="field">
           Password
           <input
             type="password"
@@ -47,19 +47,19 @@ export function Login() {
           />
         </label>
         {mode === "register" && (
-          <label>
+          <label className="field">
             Display name
             <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
           </label>
         )}
-        <button type="submit" disabled={busy}>
+        <Button type="submit" variant="primary" disabled={busy}>
           {busy ? "Working…" : mode === "login" ? "Sign in" : "Register"}
-        </button>
+        </Button>
       </form>
       {err && <p className="err">{err}</p>}
-      <button className="link" onClick={() => setMode(mode === "login" ? "register" : "login")}>
+      <Button variant="ghost" onClick={() => setMode(mode === "login" ? "register" : "login")}>
         {mode === "login" ? "Need an account? Register" : "Already registered? Sign in"}
-      </button>
-    </div>
+      </Button>
+    </Panel>
   );
 }

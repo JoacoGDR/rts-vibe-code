@@ -24,9 +24,8 @@ func Run(ctx context.Context, cfg config.Config, logger *slog.Logger, mreg *metr
 		return err
 	}
 	defer pool.Close()
-	if err := storage.Migrate(ctx, pool); err != nil {
-		return err
-	}
+	// Schema migrations run in core-api only so worker replicas can scale
+	// without racing goose.
 
 	nc, _, err := storage.NewNATS(cfg.NATSURL)
 	if err != nil {
@@ -35,6 +34,7 @@ func Run(ctx context.Context, cfg config.Config, logger *slog.Logger, mreg *metr
 	defer nc.Close()
 
 	repo := pgrepo.NewMatches(pool)
+	statsRepo := pgrepo.NewStatsRepo(pool)
 	users := pgrepo.NewUsers(pool)
 	notifyRepo := pgrepo.NewNotifications(pool)
 	notifyService := notifysvc.New(notifyRepo)
@@ -56,6 +56,20 @@ func Run(ctx context.Context, cfg config.Config, logger *slog.Logger, mreg *metr
 		ScanEvery:     cfg.AIPollInterval,
 	}
 	go presence.Run(ctx) //nolint:gosec // ditto.
+
+	final := &FinalStateWorker{
+		Logger: logger,
+		NC:     nc,
+		Repo:   pgrepoMatchesAdapter{Matches: repo},
+		Stats:  statsRepo,
+	}
+	go final.Run(ctx) //nolint:gosec // ditto.
+
+	abandon := &AbandonWorker{
+		Logger: logger, NC: nc, Repo: repo,
+		Threshold: cfg.AbandonAfter, ScanEvery: cfg.AbandonScanInterval,
+	}
+	go abandon.Run(ctx) //nolint:gosec // ditto.
 
 	mailer := NewMailer(MailerConfig{
 		Logger:   logger,

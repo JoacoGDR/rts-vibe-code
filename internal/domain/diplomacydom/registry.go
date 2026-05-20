@@ -28,6 +28,22 @@ var (
 type Registry struct {
 	treaties map[pairKey]*Treaty
 	pacts    map[pactKey]*Pact
+	version  uint64
+}
+
+// Version bumps on every mutation that can change vision contributors
+// (treaties, alliances, pacts). [visibility] uses it to invalidate caches.
+func (r *Registry) Version() uint64 {
+	if r == nil {
+		return 0
+	}
+	return r.version
+}
+
+func (r *Registry) bumpVersion() {
+	if r != nil {
+		r.version++
+	}
 }
 
 // New returns an empty Registry. The engine creates one per match in

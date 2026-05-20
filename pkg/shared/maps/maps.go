@@ -23,13 +23,17 @@ type Map struct {
 	Edges         []Edge         `yaml:"edges" json:"edges"`
 	Slots         []Slot         `yaml:"slots" json:"slots"`
 	StartingUnits []StartingUnit `yaml:"starting_units" json:"starting_units"`
+	SVGURL        string         `yaml:"svg_url,omitempty" json:"svg_url,omitempty"`
+	ThumbnailURL  string         `yaml:"thumbnail_url,omitempty" json:"thumbnail_url,omitempty"`
+	RulesSummary  string         `yaml:"rules_summary,omitempty" json:"rules_summary,omitempty"`
 }
 
 type Province struct {
-	ID   string  `yaml:"id" json:"id"`
-	X    float64 `yaml:"x" json:"x"`
-	Y    float64 `yaml:"y" json:"y"`
-	Name string  `yaml:"name,omitempty" json:"name,omitempty"`
+	ID       string  `yaml:"id" json:"id"`
+	X        float64 `yaml:"x" json:"x"`
+	Y        float64 `yaml:"y" json:"y"`
+	Name     string  `yaml:"name,omitempty" json:"name,omitempty"`
+	HomeSlot string  `yaml:"home_slot,omitempty" json:"home_slot,omitempty"`
 }
 
 type Edge struct {

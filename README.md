@@ -33,8 +33,11 @@ Health checks: every binary exposes `/healthz` (liveness) and `/readyz`
 ## Layout
 
 ```
-cmd/supremacy/         # single binary, mode flag selects subsystem
+cmd/
+  core-api/ gateway/ engine/ worker/ ai-bot/   # dedicated service binaries
+  supremacy/                                   # multi-mode binary (local dev)
 internal/
+  platform/bootstrap/  # shared process startup
   config/              # env-driven configuration
   observability/       # slog logger, Prometheus metrics, health probes
   coreapi/             # REST API: auth, lobby, match lifecycle

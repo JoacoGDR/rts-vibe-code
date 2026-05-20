@@ -2,11 +2,10 @@ package cmddom
 
 import (
 	"errors"
-	"time"
+	"strconv"
 
-	"github.com/joaquing/clone-supremacy/internal/domain/diplomacydom"
 	"github.com/joaquing/clone-supremacy/internal/domain/matchdom"
-	"github.com/joaquing/clone-supremacy/internal/domain/timeline"
+	"github.com/joaquing/clone-supremacy/internal/domain/pathdom"
 )
 
 type moveHandler struct{}
@@ -21,43 +20,98 @@ func (moveHandler) Apply(m *matchdom.Match, cmd Command) (string, []matchdom.App
 	if u.OwnerSlot != string(cmd.IssuerSlot) {
 		return "unauthorized", nil, ErrUnauthorized
 	}
-	from, ok := m.Provinces[string(cmd.From)]
-	if !ok {
-		return "bad_origin", nil, ErrInvalidDest
-	}
-	to, ok := m.Provinces[string(cmd.To)]
-	if !ok {
-		return "bad_dest", nil, ErrInvalidDest
-	}
-	if !m.Map.HasEdge(from.ID, to.ID) && from.ID != to.ID {
-		return "no_edge", nil, ErrInvalidDest
-	}
 	if u.Speed <= 0 {
 		return "no_speed", nil, errors.New("unit has no speed")
 	}
-	if !m.Diplomacy.MayMoveThrough(string(cmd.IssuerSlot), to.Owner) &&
-		m.Diplomacy.Stance(string(cmd.IssuerSlot), to.Owner) != diplomacydom.War {
+
+	now := m.GameNow
+	target, err := parseMoveTarget(m, cmd)
+	if err != nil {
+		return "bad_target", nil, err
+	}
+
+	queue := false
+	if q, ok := cmd.Extra("queue"); ok {
+		queue, _ = strconv.ParseBool(q)
+	}
+
+	if queue {
+		u.Waypoints = append(u.Waypoints, target)
+		if u.IsMoving(now) {
+			return "ok", nil, nil
+		}
+		u.Version++
+		if m.StartNextWaypoint(u, now) {
+			return "ok", nil, nil
+		}
 		return "blocked_by_treaty", nil, ErrInvalidDest
 	}
 
-	now := m.GameNow
+	g := pathdom.NewGraph(m.Map)
 	curX, curY := u.PositionAt(now)
-	dist := matchdom.EuclidDistance(curX, curY, to.X, to.Y)
-	travel := time.Duration(dist/u.Speed) * time.Second
+	legs, err := g.Route(curX, curY, target)
+	if err != nil {
+		return "no_route", nil, ErrInvalidDest
+	}
+	owners := m.ProvinceOwners()
+	if pathdom.RouteBlocked(m.Diplomacy, string(cmd.IssuerSlot), owners, legs) {
+		return "blocked_by_treaty", nil, ErrInvalidDest
+	}
 
-	u.Origin = from.ID
-	u.Dest = to.ID
-	u.OriginX, u.OriginY = curX, curY
-	u.DestX, u.DestY = to.X, to.Y
-	u.StartedAt = now
-	u.ArrivesAt = now.Add(travel)
+	u.Waypoints = nil
 	u.Version++
-
-	m.Timeline.Push(&timeline.Event{
-		At:      u.ArrivesAt,
-		Kind:    timeline.Arrival,
-		UnitID:  u.ID,
-		Version: u.Version,
-	})
+	m.SetUnitPath(u, legs, now)
 	return "ok", nil, nil
+}
+
+func parseMoveTarget(m *matchdom.Match, cmd Command) (pathdom.Target, error) {
+	if kind, ok := cmd.Extra("target_kind"); ok {
+		x, errX := strconv.ParseFloat(cmd.Args["target_x"], 64)
+		y, errY := strconv.ParseFloat(cmd.Args["target_y"], 64)
+		if errX != nil || errY != nil {
+			return pathdom.Target{}, ErrInvalidDest
+		}
+		switch kind {
+		case string(pathdom.TargetNode):
+			prov := cmd.Args["target_province"]
+			if prov == "" {
+				prov = nearestProvince(m, x, y)
+			}
+			return pathdom.Target{Kind: pathdom.TargetNode, Province: prov, X: x, Y: y}, nil
+		case string(pathdom.TargetEdge):
+			t, _ := strconv.ParseFloat(cmd.Args["edge_t"], 64)
+			return pathdom.Target{
+				Kind: pathdom.TargetEdge,
+				EdgeFrom: cmd.Args["edge_from"], EdgeTo: cmd.Args["edge_to"],
+				X: x, Y: y, T: t,
+			}, nil
+		default:
+			return pathdom.Target{}, ErrInvalidDest
+		}
+	}
+
+	// Legacy province-to-province move.
+	to, ok := m.Provinces[string(cmd.To)]
+	if !ok {
+		return pathdom.Target{}, ErrInvalidDest
+	}
+	if string(cmd.From) != "" {
+		from, okFrom := m.Provinces[string(cmd.From)]
+		if !okFrom {
+			return pathdom.Target{}, ErrInvalidDest
+		}
+		if !m.Map.HasEdge(from.ID, to.ID) && from.ID != to.ID {
+			return pathdom.Target{}, ErrInvalidDest
+		}
+	}
+	return pathdom.Target{Kind: pathdom.TargetNode, Province: to.ID, X: to.X, Y: to.Y}, nil
+}
+
+func nearestProvince(m *matchdom.Match, x, y float64) string {
+	g := pathdom.NewGraph(m.Map)
+	t := g.SnapTarget(x, y)
+	if t.Kind == pathdom.TargetNode {
+		return t.Province
+	}
+	return t.EdgeFrom
 }

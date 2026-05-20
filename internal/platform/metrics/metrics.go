@@ -20,8 +20,13 @@ type Registry struct {
 	WSConnections   prometheus.Gauge
 	WSMessagesIn    prometheus.Counter
 	WSMessagesOut   prometheus.Counter
-	CommandsApplied *prometheus.CounterVec
-	EngineEvents    *prometheus.CounterVec
+	CommandsApplied   *prometheus.CounterVec
+	EngineEvents      *prometheus.CounterVec
+	ChatMessages      prometheus.Counter
+	BotSessionsActive prometheus.Gauge
+	BotCommandsIssued prometheus.Counter
+	NotificationsSent *prometheus.CounterVec
+	TreatyChanges     *prometheus.CounterVec
 }
 
 // New builds a Registry tagged with the binary mode (`core-api`, `gateway`,
@@ -62,11 +67,33 @@ func New(mode string) *Registry {
 			Namespace: "supremacy", Subsystem: mode,
 			Name: "engine_events_total", Help: "Timeline events processed by type",
 		}, []string{"event"}),
+		ChatMessages: prometheus.NewCounter(prometheus.CounterOpts{
+			Namespace: "supremacy", Subsystem: mode,
+			Name: "chat_messages_total", Help: "Chat messages accepted for delivery",
+		}),
+		BotSessionsActive: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: "supremacy", Subsystem: mode,
+			Name: "bot_sessions_active", Help: "Active AI bot WebSocket sessions",
+		}),
+		BotCommandsIssued: prometheus.NewCounter(prometheus.CounterOpts{
+			Namespace: "supremacy", Subsystem: mode,
+			Name: "bot_commands_issued_total", Help: "Commands issued by AI bots",
+		}),
+		NotificationsSent: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Namespace: "supremacy", Subsystem: mode,
+			Name: "notifications_sent_total", Help: "Notifications delivered by channel",
+		}, []string{"kind", "channel"}),
+		TreatyChanges: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Namespace: "supremacy", Subsystem: mode,
+			Name: "treaty_changes_total", Help: "Diplomatic stance transitions",
+		}, []string{"from", "to"}),
 	}
 	prom.MustRegister(
 		r.HTTPRequests, r.HTTPDuration,
 		r.WSConnections, r.WSMessagesIn, r.WSMessagesOut,
 		r.CommandsApplied, r.EngineEvents,
+		r.ChatMessages, r.BotSessionsActive, r.BotCommandsIssued,
+		r.NotificationsSent, r.TreatyChanges,
 	)
 	return r
 }

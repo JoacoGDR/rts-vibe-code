@@ -300,6 +300,10 @@ func (c *conn) readLoop() {
 }
 
 func (c *conn) handleHello(env wire.ClientEnvelope) {
+	if env.WireVersion != 0 && env.WireVersion != wire.WireVersion {
+		c.sendError("wire_version", "client wire version is incompatible with server")
+		return
+	}
 	matchID := env.MatchID
 	if matchID == "" {
 		c.sendError("missing_match", "hello must include match_id")

@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { Button } from "../components/ui";
 import { Login } from "../features/auth/Login";
 import { useAuth } from "../features/auth/useAuth";
 import { Lobby } from "../features/lobby/Lobby";
@@ -11,7 +12,7 @@ export function App() {
   const navigate = useNavigate();
 
   if (!bootstrapped) {
-    return <div className="app-shell">Loading…</div>;
+    return <div className="app-shell app-loading">Loading war room…</div>;
   }
 
   function handleLogout() {
@@ -21,13 +22,15 @@ export function App() {
 
   return (
     <div className="app-shell">
-      <header className="topbar">
-        <h1>Supremacy</h1>
+      <header className="topbar war-room-topbar">
+        <h1 className="war-room-title topbar__brand">War room</h1>
         {session && (
           <>
-            <span className="muted">{session.user.display_name}</span>
+            <span className="topbar__user muted">{session.user.display_name}</span>
             <NotificationBell />
-            <button onClick={handleLogout}>Logout</button>
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
+              Logout
+            </Button>
           </>
         )}
       </header>

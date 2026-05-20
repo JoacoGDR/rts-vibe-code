@@ -1,5 +1,6 @@
 id: tiny-3p
 name: Tiny 3-Player
+rules_summary: "3 commanders · contested center"
 provinces:
   - { id: A, name: Alpha,   x: 100, y: 100 }
   - { id: B, name: Bravo,   x: 700, y: 100 }

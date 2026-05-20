@@ -9,6 +9,9 @@ PKG := ./cmd/... ./internal/... ./pkg/...
 VERSION ?= dev
 LDFLAGS := -s -w -X main.Version=$(VERSION)
 
+# Dedicated service binaries (production) plus the multi-mode dev binary.
+SERVICES := core-api gateway engine worker ai-bot
+
 .PHONY: help
 help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk -F':.*?## ' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
@@ -18,9 +21,15 @@ tidy: ## go mod tidy
 	$(GO) mod tidy
 
 .PHONY: build
-build: ## build the supremacy binary into ./bin
+build: build-all ## alias for build-all
+
+.PHONY: build-all
+build-all: ## build every service binary plus supremacy (multi-mode) into ./bin
 	mkdir -p bin
 	$(GO) build $(GOFLAGS) -trimpath -ldflags='$(LDFLAGS)' -o bin/supremacy ./cmd/supremacy
+	@for svc in $(SERVICES); do \
+		$(GO) build $(GOFLAGS) -trimpath -ldflags='$(LDFLAGS)' -o bin/$$svc ./cmd/$$svc; \
+	done
 
 .PHONY: vet
 vet: ## go vet
@@ -41,19 +50,28 @@ lint: ## golangci-lint (must be installed)
 
 .PHONY: run-core-api
 run-core-api: ## run core-api locally (assumes infra via 'make up')
-	$(GO) run ./cmd/supremacy core-api
+	$(GO) run ./cmd/core-api
 
 .PHONY: run-gateway
 run-gateway:
-	$(GO) run ./cmd/supremacy gateway
+	$(GO) run ./cmd/gateway
 
 .PHONY: run-engine
 run-engine:
-	$(GO) run ./cmd/supremacy engine
+	$(GO) run ./cmd/engine
 
 .PHONY: run-worker
 run-worker:
-	$(GO) run ./cmd/supremacy worker
+	$(GO) run ./cmd/worker
+
+.PHONY: run-ai-bot
+run-ai-bot:
+	$(GO) run ./cmd/ai-bot
+
+.PHONY: run-supremacy
+run-supremacy: ## run a mode via the multi-mode binary, e.g. make run-supremacy MODE=gateway
+	@test -n "$(MODE)" || (echo "usage: make run-supremacy MODE=core-api" && exit 1)
+	$(GO) run ./cmd/supremacy $(MODE)
 
 .PHONY: up
 up: ## bring up Postgres, Redis and NATS for local dev
@@ -96,7 +114,7 @@ web-typecheck:
 	cd web && npm run typecheck
 
 .PHONY: refactor-check
-refactor-check: vet lint test web-lint web-format-check web-typecheck ## run every gate before opening a PR
+refactor-check: build-all vet lint test web-lint web-format-check web-typecheck ## run every gate before opening a PR
 	@echo "all gates passed"
 
 .PHONY: tf-fmt

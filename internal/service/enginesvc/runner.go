@@ -35,6 +35,7 @@ type Runner struct {
 type matchHandle struct {
 	match  *matchdom.Match
 	cmds   chan cmddom.Command
+	resync chan struct{} // buffered 1; coalesced resync requests
 	cancel context.CancelFunc
 }
 
@@ -66,6 +67,7 @@ func (r *Runner) EnsureMatch(parent context.Context, m *matchdom.Match) {
 	h := &matchHandle{
 		match:  m,
 		cmds:   make(chan cmddom.Command, 64),
+		resync: make(chan struct{}, 1),
 		cancel: cancel,
 	}
 	r.matches[m.ID] = h
@@ -100,27 +102,45 @@ func (r *Runner) IsHosted(matchID string) bool {
 }
 
 // Rebroadcast publishes the latest filtered state for every slot, used to
-// answer client `resync` messages.
-func (r *Runner) Rebroadcast(ctx context.Context, matchID string) {
+// answer client `resync` messages. The actual broadcast runs on the match
+// loop goroutine so visibility never races map mutation.
+func (r *Runner) Rebroadcast(_ context.Context, matchID string) {
 	r.mu.Lock()
 	h, ok := r.matches[matchID]
 	r.mu.Unlock()
 	if !ok {
 		return
 	}
-	r.advanceTime(h.match)
-	r.broadcastState(ctx, h.match)
+	select {
+	case h.resync <- struct{}{}:
+	default:
+	}
 }
 
 // BroadcastInitial publishes the post-start snapshot for a brand new
 // match. Called once by the start subscriber.
 func (r *Runner) BroadcastInitial(ctx context.Context, m *matchdom.Match) {
-	r.broadcastState(ctx, m)
+	r.broadcastState(ctx, m, visibility.NewBatch(m))
 }
 
 // SlotsIndex exposes the configured slot index for adapters that need to
 // seed it at match start.
 func (r *Runner) SlotsIndex() SlotIndex { return r.slots }
+
+// ForceEnd immediately ends a hosted match, publishes the final snapshot,
+// and tears down the match loop (abandonment / admin path).
+func (r *Runner) ForceEnd(ctx context.Context, matchID string) {
+	r.mu.Lock()
+	h, ok := r.matches[matchID]
+	r.mu.Unlock()
+	if !ok {
+		return
+	}
+	h.match.Status = "ended"
+	h.match.CleanupDone = true
+	r.publishFinalState(ctx, h.match)
+	r.Stop(matchID)
+}
 
 // Stop tears down a hosted match.
 func (r *Runner) Stop(matchID string) {
@@ -166,10 +186,13 @@ func (r *Runner) runMatch(ctx context.Context, h *matchHandle) {
 			if len(events) > 0 {
 				r.broadcastEvents(ctx, h.match, events)
 			}
+		case <-h.resync:
+			r.advanceTime(h.match)
+			r.broadcastState(ctx, h.match, visibility.NewBatch(h.match))
 		}
-		if h.match.Status == "ended" {
-			logger.Info("match ended", "winner", h.match.WinnerSlot)
-			r.broadcastState(ctx, h.match)
+		if h.match.Status == "ended" && h.match.CleanupDone {
+			logger.Info("match cleanup complete", "winner", h.match.WinnerSlot)
+			r.publishFinalState(ctx, h.match)
 			r.Stop(h.match.ID)
 			return
 		}
@@ -188,14 +211,15 @@ func (r *Runner) broadcastEvents(ctx context.Context, m *matchdom.Match, events 
 	if r.broadcaster == nil {
 		return
 	}
+	batch := visibility.NewBatch(m)
 	for _, e := range events {
 		r.metrics.EngineEvents.WithLabelValues(e.Kind).Inc()
-		r.publishEventPerSlot(ctx, m, e)
+		r.publishEventPerSlot(ctx, m, batch, e)
 	}
-	r.broadcastState(ctx, m)
+	r.broadcastState(ctx, m, batch)
 }
 
-func (r *Runner) publishEventPerSlot(ctx context.Context, m *matchdom.Match, e matchdom.AppliedEvent) {
+func (r *Runner) publishEventPerSlot(ctx context.Context, m *matchdom.Match, batch *visibility.Batch, e matchdom.AppliedEvent) {
 	env := wire.ServerEnvelope{
 		Type:    wire.ServerEvent,
 		MatchID: m.ID,
@@ -213,35 +237,39 @@ func (r *Runner) publishEventPerSlot(ctx context.Context, m *matchdom.Match, e m
 
 	_ = r.broadcaster.PublishPublicEvent(ctx, m.ID, payload)
 	for slot := range m.Players {
-		if !slotObservesEvent(m, slot, e) {
+		if !batch.SlotObservesEvent(slot, e) {
 			continue
 		}
 		_ = r.broadcaster.PublishSlotEvent(ctx, m.ID, slot, payload)
 	}
 }
 
-// slotObservesEvent reports whether a slot should be told about an event,
-// given the visibility computed for this match at the moment the event
-// fires.
-func slotObservesEvent(m *matchdom.Match, slot string, e matchdom.AppliedEvent) bool {
-	provinces, units := visibility.For(m, slot, m.GameNow)
-	if e.Slot == slot {
-		return true
+// publishFinalState fan-outs one last public snapshot on the dedicated
+// final subject so the worker can persist + mark the lobby row ended.
+func (r *Runner) publishFinalState(ctx context.Context, m *matchdom.Match) {
+	if r.broadcaster == nil {
+		return
 	}
-	if e.UnitID != "" && units[e.UnitID] {
-		return true
+	batch := visibility.NewBatch(m)
+	publicEnv := wire.ServerEnvelope{
+		Type: wire.ServerState, MatchID: m.ID,
+		Seq: m.Seq, SentAt: time.Now(), State: visibility.Snapshot(m),
 	}
-	if e.Province != "" && provinces[e.Province] {
-		return true
+	if payload, err := json.Marshal(publicEnv); err == nil {
+		_ = r.broadcaster.PublishFinalState(ctx, m.ID, payload)
 	}
-	switch e.Kind {
-	case "match_ended", "province_captured":
-		return true
+	for slot := range m.Players {
+		env := wire.ServerEnvelope{
+			Type: wire.ServerState, MatchID: m.ID,
+			Seq: m.Seq, SentAt: time.Now(), State: batch.Filtered(slot),
+		}
+		if payload, err := json.Marshal(env); err == nil {
+			_ = r.broadcaster.PublishSlotState(ctx, m.ID, slot, payload)
+		}
 	}
-	return false
 }
 
-func (r *Runner) broadcastState(ctx context.Context, m *matchdom.Match) {
+func (r *Runner) broadcastState(ctx context.Context, m *matchdom.Match, batch *visibility.Batch) {
 	if r.broadcaster == nil {
 		return
 	}
@@ -256,7 +284,7 @@ func (r *Runner) broadcastState(ctx context.Context, m *matchdom.Match) {
 	for slot := range m.Players {
 		env := wire.ServerEnvelope{
 			Type: wire.ServerState, MatchID: m.ID,
-			Seq: m.Seq, SentAt: time.Now(), State: visibility.Filtered(m, slot),
+			Seq: m.Seq, SentAt: time.Now(), State: batch.Filtered(slot),
 		}
 		payload, err := json.Marshal(env)
 		if err != nil {

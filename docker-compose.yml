@@ -61,10 +61,10 @@ services:
   core-api:
     build: *supremacy-build
     image: supremacy:dev
-    command: ["core-api"]
+    command: ["/usr/local/bin/core-api"]
     environment:
       ENV: dev
-      LOG_LEVEL: debug
+      LOG_LEVEL: info
       LOG_FORMAT: text
       HTTP_ADDR: ":8080"
       METRICS_ADDR: ":9100"
@@ -87,10 +87,10 @@ services:
   gateway:
     build: *supremacy-build
     image: supremacy:dev
-    command: ["gateway"]
+    command: ["/usr/local/bin/gateway"]
     environment:
       ENV: dev
-      LOG_LEVEL: debug
+      LOG_LEVEL: info
       LOG_FORMAT: text
       HTTP_ADDR: ":8081"
       METRICS_ADDR: ":9101"
@@ -109,10 +109,10 @@ services:
   engine:
     build: *supremacy-build
     image: supremacy:dev
-    command: ["engine"]
+    command: ["/usr/local/bin/engine"]
     environment:
       ENV: dev
-      LOG_LEVEL: debug
+      LOG_LEVEL: info
       LOG_FORMAT: text
       HTTP_ADDR: ":8082"
       METRICS_ADDR: ":9102"
@@ -133,10 +133,10 @@ services:
   worker:
     build: *supremacy-build
     image: supremacy:dev
-    command: ["worker"]
+    command: ["/usr/local/bin/worker"]
     environment:
       ENV: dev
-      LOG_LEVEL: debug
+      LOG_LEVEL: info
       LOG_FORMAT: text
       HTTP_ADDR: ":8083"
       METRICS_ADDR: ":9103"
@@ -148,6 +148,8 @@ services:
       SMTP_FROM: notifications@supremacy.local
       NOTIFY_POLL_INTERVAL: 10s
     depends_on:
+      core-api:
+        condition: service_started
       postgres:
         condition: service_healthy
       redis:
@@ -163,10 +165,10 @@ services:
   ai-bot:
     build: *supremacy-build
     image: supremacy:dev
-    command: ["ai-bot"]
+    command: ["/usr/local/bin/ai-bot"]
     environment:
       ENV: dev
-      LOG_LEVEL: debug
+      LOG_LEVEL: info
       LOG_FORMAT: text
       HTTP_ADDR: ":8084"
       METRICS_ADDR: ":9104"

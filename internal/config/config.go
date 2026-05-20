@@ -44,6 +44,10 @@ type Config struct {
 	AIBotCoreAPIURL string        // ai-bot mode: base URL of core-api
 	AIBotGatewayURL string        // ai-bot mode: base URL of gateway (for ws://...)
 
+	// Phase 6: abandonment when every alive human slot is silent.
+	AbandonAfter        time.Duration // wall-clock silence before abandoning (default 30m)
+	AbandonScanInterval time.Duration // worker scan cadence (default 1m)
+
 	// Phase 5: notification + SMTP knobs. Empty SMTPHost means dev mode
 	// (notifications are still persisted, but the worker logs and stamps
 	// sent_at without dialling out).
@@ -54,6 +58,11 @@ type Config struct {
 	SMTPUsername       string
 	SMTPPassword       string
 	SMTPFrom           string
+
+	// MapAssetsBaseURL is the CDN/S3 origin for province SVGs (e.g.
+	// https://assets.example.com). When empty, core-api returns relative
+	// paths (/maps/{id}.svg) for the SPA to serve from its static host.
+	MapAssetsBaseURL string
 }
 
 const (
@@ -90,6 +99,9 @@ func Load(mode string) (Config, error) {
 		AIBotCoreAPIURL: getenv("AI_BOT_CORE_API_URL", "http://localhost:8080"),
 		AIBotGatewayURL: getenv("AI_BOT_GATEWAY_URL", "ws://localhost:8081"),
 
+		AbandonAfter:        getDuration("ABANDON_AFTER", 30*time.Minute),
+		AbandonScanInterval: getDuration("ABANDON_SCAN_INTERVAL", time.Minute),
+
 		NotifyPollInterval: getDuration("NOTIFY_POLL_INTERVAL", 15*time.Second),
 		NotifyBatchSize:    getInt("NOTIFY_BATCH_SIZE", 50),
 		SMTPHost:           getenv("SMTP_HOST", ""),
@@ -97,6 +109,8 @@ func Load(mode string) (Config, error) {
 		SMTPUsername:       getenv("SMTP_USERNAME", ""),
 		SMTPPassword:       getenv("SMTP_PASSWORD", ""),
 		SMTPFrom:           getenv("SMTP_FROM", "notifications@supremacy.local"),
+
+		MapAssetsBaseURL: getenv("MAP_ASSETS_BASE_URL", ""),
 	}
 	if err := cfg.Validate(); err != nil {
 		return Config{}, err

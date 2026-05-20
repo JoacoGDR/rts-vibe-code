@@ -11,6 +11,9 @@ func (arrivalHandler) Apply(m *Match, ev *timeline.Event) []AppliedEvent {
 	if !ok || u.Version != ev.Version {
 		return nil // stale event
 	}
+	if len(u.Path) > 0 {
+		return m.CompleteUnitLeg(u, ev.At)
+	}
 	prov, ok := m.Provinces[u.Dest]
 	if !ok {
 		return nil

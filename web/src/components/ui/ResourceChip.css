@@ -1,0 +1,42 @@
+.resource-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 0.35rem 0.75rem;
+  border-right: 1px solid var(--border-subtle);
+  min-width: 72px;
+}
+
+.resource-chip:last-child {
+  border-right: none;
+}
+
+.resource-chip__label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+}
+
+.resource-chip__value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.resource-chip__rate {
+  font-size: 0.7rem;
+}
+
+.resource-chip__rate.positive {
+  color: var(--success);
+}
+
+.resource-chip__rate.negative {
+  color: var(--danger);
+}
+
+.resource-chip--warn .resource-chip__value {
+  color: var(--danger);
+}

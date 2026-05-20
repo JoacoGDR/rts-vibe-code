@@ -40,3 +40,16 @@ func SlotStateSubject(matchID, slot string) string {
 func SlotEventSubject(matchID, slot string) string {
 	return fmt.Sprintf("match.%s.slot.%s.event", matchID, slot)
 }
+
+// FinalStateSubject is the one-shot snapshot published when a match
+// finishes its post-game cleanup. The worker subscribes here to mark
+// the lobby row ended and persist the final snapshot.
+func FinalStateSubject(matchID string) string {
+	return fmt.Sprintf("match.%s.state.final", matchID)
+}
+
+// EndMatchSubject asks the engine to tear down an in-memory match
+// (abandonment path). Payload is [EndMatchPayload].
+func EndMatchSubject(matchID string) string {
+	return fmt.Sprintf("match.%s.end", matchID)
+}

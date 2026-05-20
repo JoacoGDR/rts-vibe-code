@@ -33,7 +33,7 @@ const (
 func UnitViewRadius(unitType string) float64 {
 	switch unitType {
 	case "infantry":
-		return 220
+		return 2200
 	case "cavalry":
 		return 280
 	case "armor":

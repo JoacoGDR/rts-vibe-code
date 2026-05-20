@@ -1,5 +1,6 @@
 id: tiny-2p
 name: Tiny 2-Player
+rules_summary: "2 commanders · skirmish map"
 provinces:
   - { id: A, name: Alpha,    x: 100, y: 100 }
   - { id: B, name: Bravo,    x: 700, y: 100 }

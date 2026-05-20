@@ -1,5 +1,11 @@
 import { useAppStore } from "../../app/store";
-import type { ChatOutbound, ClientCommand, ClientEnvelope, ServerEnvelope } from "../../types/wire";
+import {
+  WIRE_VERSION,
+  type ChatOutbound,
+  type ClientCommand,
+  type ClientEnvelope,
+  type ServerEnvelope,
+} from "../../types/wire";
 
 // GameSocket owns the websocket lifecycle for a single match. The match
 // component drives it via the useMatchSocket hook below; everything else
@@ -9,6 +15,7 @@ export class GameSocket {
   private matchID: string;
   private ticket: string;
   private pingTimer: number | null = null;
+  private resyncTimer: number | null = null;
 
   constructor(ticket: string, matchID: string) {
     this.ticket = ticket;
@@ -24,7 +31,7 @@ export class GameSocket {
       const ws = new WebSocket(url.toString());
       this.ws = ws;
       ws.onopen = () => {
-        this.send({ type: "hello", match_id: this.matchID });
+        this.send({ type: "hello", wire_version: WIRE_VERSION, match_id: this.matchID });
         this.pingTimer = window.setInterval(() => {
           this.send({ type: "ping" });
         }, 20000);
@@ -33,9 +40,27 @@ export class GameSocket {
       ws.onerror = (e) => reject(e);
       ws.onclose = () => {
         if (this.pingTimer) window.clearInterval(this.pingTimer);
+        if (this.resyncTimer) window.clearTimeout(this.resyncTimer);
       };
       ws.onmessage = (msg) => this.handleMessage(msg);
     });
+  }
+
+  /** Ask the engine to rebroadcast the latest filtered state for this match. */
+  requestResync() {
+    this.send({
+      type: "resync",
+      wire_version: WIRE_VERSION,
+      match_id: this.matchID,
+    });
+  }
+
+  private scheduleFollowUpResync() {
+    if (this.resyncTimer) window.clearTimeout(this.resyncTimer);
+    this.resyncTimer = window.setTimeout(() => {
+      this.resyncTimer = null;
+      this.requestResync();
+    }, 500);
   }
 
   private handleMessage(msg: MessageEvent) {
@@ -63,6 +88,9 @@ export class GameSocket {
         console.warn("server error", env.error);
         break;
       case "hello_ack":
+        this.requestResync();
+        this.scheduleFollowUpResync();
+        break;
       case "pong":
         break;
     }
@@ -83,6 +111,7 @@ export class GameSocket {
 
   close() {
     if (this.pingTimer) window.clearInterval(this.pingTimer);
+    if (this.resyncTimer) window.clearTimeout(this.resyncTimer);
     this.ws?.close();
     this.ws = null;
   }

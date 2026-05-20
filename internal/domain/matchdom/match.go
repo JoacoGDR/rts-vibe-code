@@ -44,6 +44,9 @@ func New(matchID, mapID string, slotAssignments map[string]string, speed float64
 
 	for _, p := range m.Provinces {
 		match.Provinces[p.ID] = &Province{ID: p.ID, X: p.X, Y: p.Y}
+		if p.HomeSlot != "" {
+			match.Provinces[p.ID].Owner = p.HomeSlot
+		}
 	}
 
 	for _, s := range m.Slots {

@@ -61,7 +61,7 @@ func RunCoreAPI(ctx context.Context, cfg config.Config, logger *slog.Logger, mre
 
 	matchesRepo := pgrepo.NewMatches(infra.pool)
 	authService := authsvc.New(pgrepo.NewUsers(infra.pool), issuer, tickets)
-	lobbyService := lobbysvc.New(matchesRepo, publisher, cfg.GameTimeFactor)
+	lobbyService := lobbysvc.NewWithBots(matchesRepo, pgrepo.NewUsers(infra.pool), publisher, cfg.GameTimeFactor)
 	chatService := chatsvc.New(pgrepo.NewChat(infra.pool), matchesRepo, publisher)
 	notifyService := notifysvc.New(pgrepo.NewNotifications(infra.pool))
 
@@ -75,8 +75,8 @@ func RunCoreAPI(ctx context.Context, cfg config.Config, logger *slog.Logger, mre
 		Health:    newCoreAPIHealth(cfg, version, infra),
 		Issuer:    issuer,
 		Auth:      v1.NewAuthController(authService),
-		Match:     v1.NewMatchController(lobbyService),
-		Maps:      v1.NewMapController(),
+		Match:     v1.NewMatchController(lobbyService, v1.NewStatsReader(pgrepo.NewStatsRepo(infra.pool))),
+		Maps:      v1.NewMapController(cfg.MapAssetsBaseURL),
 		Chat:      v1.NewChatController(chatService),
 		Notify:    v1.NewNotificationController(notifyService),
 		BotAPIKey: cfg.BotAPIKey,
@@ -224,6 +224,11 @@ func mountV1(r chi.Router, d coreAPIDeps) {
 		r.Get("/matches/{matchID}", d.Match.Get)
 		r.Post("/matches/{matchID}/join", d.Match.Join)
 		r.Post("/matches/{matchID}/start", d.Match.Start)
+		r.Post("/matches/{matchID}/leave", d.Match.Leave)
+		r.Post("/matches/{matchID}/kick", d.Match.Kick)
+		r.Post("/matches/{matchID}/handoff", d.Match.Handoff)
+		r.Patch("/matches/{matchID}/slots", d.Match.PatchSlots)
+		r.Get("/matches/{matchID}/stats", d.Match.Stats)
 		r.Post("/matches/{matchID}/chat", d.Chat.Send)
 		r.Get("/matches/{matchID}/chat", d.Chat.History)
 		r.Get("/notifications", d.Notify.List)

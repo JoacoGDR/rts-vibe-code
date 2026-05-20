@@ -3,7 +3,6 @@ package lobbysvc
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/google/uuid"
 
@@ -21,7 +20,10 @@ type MatchesRepository interface {
 	ListLobby(ctx context.Context, userID uuid.UUID) ([]lobbydom.Match, error)
 	AddPlayer(ctx context.Context, p lobbydom.Player) error
 	ListPlayers(ctx context.Context, matchID uuid.UUID) ([]lobbydom.Player, error)
+	MarkStarting(ctx context.Context, id uuid.UUID) error
 	MarkActive(ctx context.Context, id uuid.UUID) error
+	MarkControlledByAI(ctx context.Context, matchID uuid.UUID, slot string, on bool) (bool, error)
+	RemovePlayer(ctx context.Context, matchID, userID uuid.UUID) error
 }
 
 // MatchStartPublisher is the engine notification dependency.
@@ -32,12 +34,19 @@ type MatchStartPublisher interface {
 // Service is the lobby use-case orchestrator.
 type Service struct {
 	repo      MatchesRepository
+	bots      BotUsersRepository
 	publisher MatchStartPublisher
 	speed     float64
 }
 
 func New(repo MatchesRepository, publisher MatchStartPublisher, speed float64) *Service {
 	return &Service{repo: repo, publisher: publisher, speed: speed}
+}
+
+// NewWithBots is the full constructor used by core-api when bot fill
+// on start is required.
+func NewWithBots(repo MatchesRepository, bots BotUsersRepository, publisher MatchStartPublisher, speed float64) *Service {
+	return &Service{repo: repo, bots: bots, publisher: publisher, speed: speed}
 }
 
 // MatchView bundles a match with its player roster — convenient for the
@@ -49,16 +58,21 @@ type MatchView struct {
 
 // CreateInput is the use-case argument for creating a match.
 type CreateInput struct {
-	Name   string
-	MapID  string
-	Slot   string
-	UserID uuid.UUID
+	Name      string
+	MapID     string
+	Slot      string
+	UserID    uuid.UUID
+	AutoStart *bool // nil/true = fill bots and start immediately
+}
+
+func autoStartEnabled(v *bool) bool {
+	return v == nil || *v
 }
 
 func (s *Service) Create(ctx context.Context, in CreateInput) (MatchView, error) {
 	mapID := in.MapID
 	if mapID == "" {
-		mapID = "tiny-2p"
+		mapID = "classic-4p"
 	}
 	mp, err := maps.Load(mapID)
 	if err != nil {
@@ -77,6 +91,12 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (MatchView, error)
 		MatchID: m.ID, UserID: in.UserID, Slot: slot, Color: color, Alive: true,
 	}); err != nil {
 		return MatchView{}, errs.Wrap(err, errs.Internal, "adding player")
+	}
+	if autoStartEnabled(in.AutoStart) {
+		if s.bots == nil {
+			return MatchView{}, errs.New(errs.Internal, "bot pool not configured")
+		}
+		return s.publishStartWithFill(ctx, m)
 	}
 	return s.View(ctx, m.ID)
 }
@@ -149,8 +169,8 @@ func (s *Service) Join(ctx context.Context, in JoinInput) (JoinResult, error) {
 	return JoinResult{View: view, JoinedSlot: chosen}, nil
 }
 
-// Start transitions a match to active and notifies the engine to host
-// it.
+// Start transitions a match through starting → active, fills empty slots
+// with bots, and notifies the engine to host the match.
 func (s *Service) Start(ctx context.Context, matchID uuid.UUID) (MatchView, error) {
 	m, err := s.repo.Get(ctx, matchID)
 	if err != nil {
@@ -162,30 +182,7 @@ func (s *Service) Start(ctx context.Context, matchID uuid.UUID) (MatchView, erro
 	if m.Status != lobbydom.StatusWaiting {
 		return MatchView{}, errs.New(errs.Conflict, "already started")
 	}
-	players, err := s.repo.ListPlayers(ctx, m.ID)
-	if err != nil {
-		return MatchView{}, errs.Wrap(err, errs.Internal, "listing players")
-	}
-	if len(players) < 2 {
-		return MatchView{}, errs.New(errs.Conflict, "need at least 2 players")
-	}
-	if err := s.repo.MarkActive(ctx, m.ID); err != nil {
-		return MatchView{}, errs.Wrap(err, errs.Internal, "marking active")
-	}
-	slotAssign := map[string]string{}
-	for _, p := range players {
-		slotAssign[p.Slot] = p.UserID.String()
-	}
-	if err := s.publisher.PublishStart(ctx, natsbridge.StartPayload{
-		MatchID:         m.ID.String(),
-		MapID:           m.MapID,
-		Speed:           m.SpeedFactor,
-		StartedAt:       time.Now(),
-		SlotAssignments: slotAssign,
-	}); err != nil {
-		return MatchView{}, errs.Wrap(err, errs.Internal, "publishing start")
-	}
-	return s.View(ctx, m.ID)
+	return s.publishStartWithFill(ctx, m)
 }
 
 // Get returns a single match's view by id.

@@ -135,6 +135,16 @@ linters:
             - pkg: github.com/joaquing/clone-supremacy/internal/match
               desc: "internal/match has been removed"
 
+        # Gateway must not call chatsvc directly; chat ingress goes via
+        # NATS (chat.<matchID>.ingress).
+        gateway-rules:
+          list-mode: lax
+          files:
+            - "**/internal/gateway/**/*.go"
+          deny:
+            - pkg: github.com/joaquing/clone-supremacy/internal/service/chatsvc
+              desc: "gateway forwards chat via NATS; must not import chatsvc"
+
         # pkg/ is meant to be importable from outside the repo: it must
         # never reach into internal/.
         pkg-rules:

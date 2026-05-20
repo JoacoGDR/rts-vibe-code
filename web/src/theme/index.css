@@ -1,0 +1,50 @@
+@import "./tokens.css";
+@import "./typography.css";
+@import "./motion.css";
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  background: var(--surface-void);
+  color: var(--text-primary);
+}
+
+input,
+select,
+textarea {
+  background: var(--surface-inset);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.45rem 0.65rem;
+  font: inherit;
+  transition: border-color var(--duration-fast) var(--ease-mechanical);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--accent-command);
+  box-shadow: 0 0 0 1px var(--border-glow);
+}
+
+label.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+.muted {
+  color: var(--text-dim);
+}
+
+.err {
+  color: var(--danger);
+  margin-top: var(--space-sm);
+}

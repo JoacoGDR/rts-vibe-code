@@ -1,0 +1,137 @@
+.map-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background: var(--surface-inset);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.map-transform-wrapper {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.map-transform-content {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.map-svg-host {
+  width: 100%;
+  height: 100%;
+  min-height: 480px;
+}
+
+.map-svg-host svg.province-map-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.map-svg-host [data-province-id] {
+  fill: var(--province-fill, var(--state-neutral));
+  stroke: var(--province-stroke, var(--border-brass));
+  stroke-width: 1.5;
+  cursor: pointer;
+  transition:
+    fill var(--duration-fast) var(--ease-mechanical),
+    stroke var(--duration-fast) var(--ease-mechanical),
+    filter var(--duration-fast) var(--ease-mechanical);
+}
+
+.map-svg-host [data-province-id]:hover,
+.map-svg-host .province--hover {
+  filter: brightness(1.2);
+  stroke-width: 2;
+}
+
+.map-svg-host .province--selected {
+  stroke: var(--accent-command);
+  stroke-width: 2.5;
+  filter: brightness(1.15);
+}
+
+.map-motion-layer {
+  position: relative;
+  max-width: 100%;
+  margin: 0 auto;
+  cursor: default;
+}
+
+.path-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.path-line {
+  stroke: var(--accent-command, #c9a227);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.path-line--active {
+  stroke-width: 3;
+}
+
+.path-line--queued {
+  stroke-dasharray: 6 5;
+  stroke: var(--text-dim, #8a919c);
+  stroke-width: 2;
+}
+
+.path-line--preview {
+  stroke-width: 3;
+  opacity: 0.9;
+}
+
+.path-line--attack,
+.path-arrow--attack {
+  stroke: var(--state-enemy, #e8523a);
+  fill: var(--state-enemy, #e8523a);
+}
+
+.path-arrow {
+  fill: var(--accent-command, #c9a227);
+  stroke: none;
+}
+
+.unit-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.unit-overlay canvas {
+  pointer-events: none;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.map-loading,
+.map-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 480px;
+  color: var(--text-dim);
+}
+
+.map-tooltip-floating {
+  position: fixed;
+  z-index: 100;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-brass);
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  pointer-events: none;
+  box-shadow: var(--shadow-panel);
+}

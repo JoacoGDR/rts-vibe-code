@@ -11,6 +11,7 @@ type Broadcaster interface {
 	PublishSlotState(ctx context.Context, matchID, slot string, payload []byte) error
 	PublishPublicEvent(ctx context.Context, matchID string, payload []byte) error
 	PublishSlotEvent(ctx context.Context, matchID, slot string, payload []byte) error
+	PublishFinalState(ctx context.Context, matchID string, payload []byte) error
 }
 
 // SlotIndex is implemented by anything that can persist the user->slot

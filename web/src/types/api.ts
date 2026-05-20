@@ -26,7 +26,7 @@ export interface MatchView {
   id: string;
   name: string;
   map_id: string;
-  status: "waiting" | "active" | "ended";
+  status: "waiting" | "starting" | "active" | "ended" | "abandoned";
   created_at: string;
   started_at?: string;
   ended_at?: string;
@@ -39,6 +39,16 @@ export interface PlayerView {
   slot: string;
   color: string;
   alive: boolean;
+  controlled_by_ai?: boolean;
+}
+
+export interface MatchStatsView {
+  match_id: string;
+  duration_sec: number;
+  total_units: number;
+  total_combats: number;
+  capitals_taken: number;
+  per_slot: Record<string, unknown>;
 }
 
 export interface MapDef {
@@ -48,4 +58,7 @@ export interface MapDef {
   edges: { from: string; to: string }[];
   slots: { id: string; color: string; capital: string }[];
   starting_units: { slot: string; type: string; province: string; hp?: number }[];
+  svg_url?: string;
+  thumbnail_url?: string;
+  rules_summary?: string;
 }

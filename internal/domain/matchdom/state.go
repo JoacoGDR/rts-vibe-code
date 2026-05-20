@@ -7,6 +7,7 @@ import (
 
 	"github.com/joaquing/clone-supremacy/internal/domain/diplomacydom"
 	"github.com/joaquing/clone-supremacy/internal/domain/economydom"
+	"github.com/joaquing/clone-supremacy/internal/domain/pathdom"
 	"github.com/joaquing/clone-supremacy/internal/domain/timeline"
 	"github.com/joaquing/clone-supremacy/pkg/shared/maps"
 )
@@ -30,11 +31,31 @@ type Unit struct {
 	DestY     float64
 	Speed     float64 // units / game-second
 	Version   uint64  // bumped every time the unit accepts a new command
+
+	Path      []PathLeg
+	PathIndex int
+	Waypoints []pathdom.Target
 }
 
 // PositionAt resolves the unit's position at the given game time using the
 // linear motion equation from the architecture doc.
 func (u *Unit) PositionAt(t time.Time) (float64, float64) {
+	if len(u.Path) > 0 && u.PathIndex < len(u.Path) {
+		leg := u.Path[u.PathIndex]
+		if !t.After(u.StartedAt) {
+			return leg.FromX, leg.FromY
+		}
+		if !t.Before(leg.ArrivesAt) {
+			return leg.ToX, leg.ToY
+		}
+		totalDur := leg.ArrivesAt.Sub(u.StartedAt).Seconds()
+		if totalDur <= 0 {
+			return leg.ToX, leg.ToY
+		}
+		progress := t.Sub(u.StartedAt).Seconds() / totalDur
+		return leg.FromX + (leg.ToX-leg.FromX)*progress,
+			leg.FromY + (leg.ToY-leg.FromY)*progress
+	}
 	if u.Origin == u.Dest || u.ArrivesAt.IsZero() {
 		return u.OriginX, u.OriginY
 	}
@@ -55,6 +76,9 @@ func (u *Unit) PositionAt(t time.Time) (float64, float64) {
 
 // IsMoving reports whether the unit is in flight at the given game time.
 func (u *Unit) IsMoving(t time.Time) bool {
+	if len(u.Path) > 0 && u.PathIndex < len(u.Path) {
+		return t.Before(u.Path[u.PathIndex].ArrivesAt)
+	}
 	return !u.ArrivesAt.IsZero() && t.Before(u.ArrivesAt) && u.Origin != u.Dest
 }
 
@@ -103,13 +127,20 @@ type Match struct {
 	Resources   map[string]*economydom.Resources
 	Buildings   []*Building
 	Timeline    *timeline.Timeline
-	Status      string // active | ended
-	WinnerSlot  string
-	WinnerCoal  []string // every slot that shares the win (alliance victory)
+	Status       string // active | ended
+	WinnerSlot   string
+	WinnerCoal   []string // every slot that shares the win (alliance victory)
+	CleanupDone  bool     // set when the post-game cleanup event has fired
 	Seq         uint64
 	NextRecruit map[string]*RecruitOrder
 	NextBuild   map[string]*BuildOrder
 	Diplomacy   *diplomacydom.Registry
+
+	// VisContributorVersion and VisContributors cache
+	// [visibility.viewerContributors] results. Invalidated when diplomacy
+	// changes (see [diplomacydom.Registry.Version]). Match-loop only.
+	VisContributorVersion uint64
+	VisContributors       map[string]map[string]bool
 }
 
 // SlotIDs returns every slot id present in the match, sorted. Used by

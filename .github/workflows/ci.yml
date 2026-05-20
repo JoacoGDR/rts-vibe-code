@@ -25,6 +25,13 @@ jobs:
         with:
           version: v2.1.6
           args: ./cmd/... ./internal/... ./pkg/...
+      - name: go build (all binaries)
+        run: |
+          mkdir -p bin
+          go build -trimpath -o bin/supremacy ./cmd/supremacy
+          for svc in core-api gateway engine worker ai-bot; do
+            go build -trimpath -o bin/$svc ./cmd/$svc
+          done
       - name: go test
         run: go test -race -count=1 ./cmd/... ./internal/... ./pkg/...
 

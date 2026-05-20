@@ -81,7 +81,14 @@ func subscribeEngine(ctx context.Context, logger *slog.Logger, nc *nats.Conn, js
 	if err := natsbridge.SubscribeCommands(ctx, logger, js, commandHandler); err != nil {
 		return err
 	}
-	return natsbridge.SubscribeResyncs(ctx, logger, nc, resyncHandler)
+	if err := natsbridge.SubscribeResyncs(ctx, logger, nc, resyncHandler); err != nil {
+		return err
+	}
+	endHandler := func(p natsbridge.EndMatchPayload) error {
+		runner.ForceEnd(ctx, p.MatchID)
+		return nil
+	}
+	return natsbridge.SubscribeEndMatches(ctx, logger, nc, endHandler)
 }
 
 func makeStartHandler(ctx context.Context, logger *slog.Logger, runner *enginesvc.Runner) func(natsbridge.StartPayload) error {

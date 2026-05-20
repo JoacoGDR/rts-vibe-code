@@ -1,0 +1,22 @@
+<svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="600" fill="#0c0f14" />
+  <g stroke="#3d4555" stroke-width="1" fill-opacity="0.85">
+    <circle data-province-id="A" cx="100" cy="100" r="44" />
+    <circle data-province-id="B" cx="700" cy="100" r="44" />
+    <circle data-province-id="F" cx="400" cy="100" r="44" />
+    <circle data-province-id="C" cx="400" cy="500" r="52" />
+    <circle data-province-id="D" cx="100" cy="500" r="44" />
+    <circle data-province-id="E" cx="700" cy="500" r="44" />
+  </g>
+  <g fill="none" stroke="#252b38" stroke-width="2">
+    <line x1="144" y1="100" x2="356" y2="100" />
+    <line x1="444" y1="100" x2="656" y2="100" />
+    <line x1="144" y1="500" x2="348" y2="500" />
+    <line x1="452" y1="500" x2="656" y2="500" />
+    <line x1="120" y1="130" x2="120" y2="456" />
+    <line x1="680" y1="130" x2="680" y2="456" />
+    <line x1="130" y1="130" x2="370" y2="470" />
+    <line x1="670" y1="130" x2="430" y2="470" />
+    <line x1="400" y1="144" x2="400" y2="448" />
+  </g>
+</svg>

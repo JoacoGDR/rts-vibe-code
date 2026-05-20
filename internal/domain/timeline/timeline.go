@@ -16,6 +16,7 @@ const (
 	VictoryCheck      Kind = "victory_check"
 	RecruitComplete   Kind = "recruit_complete"
 	ConstructComplete Kind = "construct_complete"
+	MatchCleanup      Kind = "match_cleanup"
 )
 
 // Event is the unit of work the scheduler holds. The Version field

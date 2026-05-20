@@ -16,8 +16,11 @@ this piece of code go?" Read it before adding a new package.
 ## Layout
 
 ```
-cmd/supremacy/                       single binary, mode dispatch only
+cmd/
+  core-api/  gateway/  engine/  worker/  ai-bot/   dedicated service binaries
+  supremacy/                           multi-mode binary (local dev only)
 internal/
+  platform/bootstrap/                shared process startup (config, metrics, signals)
   app/                               composition root, one file per binary mode
   platform/                          cross-cutting infra (no domain knowledge)
     log/    metrics/    health/    httpserver/

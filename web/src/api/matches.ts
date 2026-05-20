@@ -1,5 +1,5 @@
 import { request } from "./client";
-import type { MatchView } from "../types/api";
+import type { MatchStatsView, MatchView } from "../types/api";
 
 export const matchesApi = {
   list() {
@@ -10,11 +10,17 @@ export const matchesApi = {
     return request<MatchView>("GET", `/api/v1/matches/${id}`);
   },
 
-  create(name: string, mapID: string, slot: string) {
+  create(
+    name: string,
+    mapID: string,
+    slot: string,
+    options?: { autoStart?: boolean },
+  ) {
     return request<MatchView>("POST", "/api/v1/matches", {
       name,
       map_id: mapID,
       slot,
+      ...(options?.autoStart === false ? { auto_start: false } : {}),
     });
   },
 
@@ -24,5 +30,21 @@ export const matchesApi = {
 
   start(id: string) {
     return request<MatchView>("POST", `/api/v1/matches/${id}/start`);
+  },
+
+  leave(id: string) {
+    return request<MatchView>("POST", `/api/v1/matches/${id}/leave`);
+  },
+
+  kick(id: string, userID: string) {
+    return request<MatchView>("POST", `/api/v1/matches/${id}/kick`, { user_id: userID });
+  },
+
+  handoff(id: string) {
+    return request<MatchView>("POST", `/api/v1/matches/${id}/handoff`);
+  },
+
+  stats(id: string) {
+    return request<MatchStatsView>("GET", `/api/v1/matches/${id}/stats`);
   },
 };

@@ -60,23 +60,24 @@ Useful when you want fast rebuilds without rebuilding the image.
 
    That runs `docker compose up -d postgres redis nats` (no app containers).
 
-2. In **separate terminals**, from the repo root, run each mode (defaults in [`internal/config/config.go`](../internal/config/config.go) already point at `localhost:5432`, `localhost:6379`, `localhost:4222`):
+2. In **separate terminals**, from the repo root, run each service (defaults in [`internal/config/config.go`](../internal/config/config.go) already point at `localhost:5432`, `localhost:6379`, `localhost:4222`):
 
    ```bash
-   go run ./cmd/supremacy core-api
-   go run ./cmd/supremacy gateway
-   go run ./cmd/supremacy engine
-   go run ./cmd/supremacy worker
-   go run ./cmd/supremacy ai-bot   # optional unless you care about AI slots
+   make run-core-api
+   make run-gateway
+   make run-engine
+   make run-worker
+   make run-ai-bot   # optional unless you care about AI slots
    ```
 
-   Or use `make run-core-api`, `make run-gateway`, etc.
+   Or `go run ./cmd/core-api`, etc. The multi-mode binary still works:
+   `go run ./cmd/supremacy gateway`.
 
 3. **Metrics ports:** every mode defaults `METRICS_ADDR` to `:9100`. If you run more than one binary on the host, set a unique port per process, for example:
 
    ```bash
-   METRICS_ADDR=:9100 go run ./cmd/supremacy core-api
-   METRICS_ADDR=:9101 go run ./cmd/supremacy gateway
+   METRICS_ADDR=:9100 go run ./cmd/core-api
+   METRICS_ADDR=:9101 go run ./cmd/gateway
    ```
 
 4. **Mailpit for the worker:** with hybrid setup, Mailpit is not started by `make up`. Either add Mailpit manually (`docker compose up -d mailpit`) and set `SMTP_HOST=localhost` (and `SMTP_PORT=1025`) for the worker, or leave SMTP unset; the worker still persists notifications but skips real SMTP in dev when `SMTP_HOST` is empty (see config comments in `internal/config/config.go`).

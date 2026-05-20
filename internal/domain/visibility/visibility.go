@@ -1,7 +1,6 @@
 package visibility
 
 import (
-	"math"
 	"time"
 
 	"github.com/joaquing/clone-supremacy/internal/domain/balance"
@@ -17,24 +16,18 @@ import (
 //  2. Every owned unit illuminates a circle of `view_radius` around its
 //     current interpolated position. Any province/unit whose position lies
 //     inside the union of those circles is visible.
-//  3. Phase 4: every alliance partner and every slot that has granted
-//     `slot` a [diplomacydom.ShareMap] pact contributes its own circles
-//     to the union, so allied vision stacks transparently.
+//  3. Alliance partners and ShareMap grantees contribute their circles to
+//     the union.
 //
-// This is the engine-internal version of the "graph-based spatial
-// partitioning" described in the architecture PDF — kept simple for the MVP
-// (linear N×M scan) so we can tune correctness before optimising. Phase 8
-// will lift this into its own service if profiling demands it.
+// Circle–point tests use a uniform spatial index; contributor sets are
+// cached on the match until diplomacy changes.
 func For(m *matchdom.Match, slot string, at time.Time) (visibleProvinces map[string]bool, visibleUnits map[string]bool) {
 	visibleProvinces = map[string]bool{}
 	visibleUnits = map[string]bool{}
 
-	type circle struct {
-		x, y, r float64
-	}
-	circles := []circle{}
-
 	contributors := viewerContributors(m, slot)
+
+	circles := make([]visionCircle, 0, len(m.Provinces)+len(m.Units))
 
 	for _, p := range m.Provinces {
 		if !contributors[p.Owner] {
@@ -44,7 +37,8 @@ func For(m *matchdom.Match, slot string, at time.Time) (visibleProvinces map[str
 		for _, n := range m.Map.Neighbors(p.ID) {
 			visibleProvinces[n] = true
 		}
-		circles = append(circles, circle{p.X, p.Y, balance.OwnedProvinceViewRadius})
+		r := balance.OwnedProvinceViewRadius
+		circles = append(circles, visionCircle{p.X, p.Y, r * r})
 	}
 
 	for _, u := range m.Units {
@@ -53,18 +47,36 @@ func For(m *matchdom.Match, slot string, at time.Time) (visibleProvinces map[str
 		}
 		x, y := u.PositionAt(at)
 		visibleUnits[u.ID] = true
-		circles = append(circles, circle{x, y, balance.UnitViewRadius(u.Type)})
+		r := balance.UnitViewRadius(u.Type)
+		circles = append(circles, visionCircle{x, y, r * r})
 	}
+
+	if len(circles) == 0 {
+		return visibleProvinces, visibleUnits
+	}
+
+	points := make([][2]float64, 0, len(m.Provinces)+len(m.Units))
+	for _, p := range m.Provinces {
+		if visibleProvinces[p.ID] {
+			continue
+		}
+		points = append(points, [2]float64{p.X, p.Y})
+	}
+	for _, u := range m.Units {
+		if visibleUnits[u.ID] {
+			continue
+		}
+		x, y := u.PositionAt(at)
+		points = append(points, [2]float64{x, y})
+	}
+	idx := newSpatialIndex(circles, points)
 
 	for _, p := range m.Provinces {
 		if visibleProvinces[p.ID] {
 			continue
 		}
-		for _, c := range circles {
-			if dist(p.X, p.Y, c.x, c.y) <= c.r {
-				visibleProvinces[p.ID] = true
-				break
-			}
+		if idx.within(p.X, p.Y, circles) {
+			visibleProvinces[p.ID] = true
 		}
 	}
 
@@ -73,20 +85,37 @@ func For(m *matchdom.Match, slot string, at time.Time) (visibleProvinces map[str
 			continue
 		}
 		ux, uy := u.PositionAt(at)
-		for _, c := range circles {
-			if dist(ux, uy, c.x, c.y) <= c.r {
-				visibleUnits[u.ID] = true
-				break
-			}
+		if idx.within(ux, uy, circles) {
+			visibleUnits[u.ID] = true
 		}
 	}
-	return
+	return visibleProvinces, visibleUnits
 }
 
 // viewerContributors returns every slot whose vision is folded into
 // `slot`'s perspective: itself, alliance partners (transitive coalition),
-// and any slot that has granted `slot` a ShareMap pact.
+// and any slot that has granted `slot` a ShareMap pact. Results are cached
+// on the match until diplomacy [diplomacydom.Registry.Version] changes.
 func viewerContributors(m *matchdom.Match, slot string) map[string]bool {
+	diplomacyVer := uint64(0)
+	if m.Diplomacy != nil {
+		diplomacyVer = m.Diplomacy.Version()
+	}
+	if m.VisContributors != nil && m.VisContributorVersion == diplomacyVer {
+		if c, ok := m.VisContributors[slot]; ok {
+			return c
+		}
+	} else {
+		m.VisContributors = map[string]map[string]bool{}
+		m.VisContributorVersion = diplomacyVer
+	}
+
+	out := computeViewerContributors(m, slot)
+	m.VisContributors[slot] = out
+	return out
+}
+
+func computeViewerContributors(m *matchdom.Match, slot string) map[string]bool {
 	if m.Diplomacy == nil {
 		return map[string]bool{slot: true}
 	}
@@ -103,74 +132,10 @@ func viewerContributors(m *matchdom.Match, slot string) map[string]bool {
 	return out
 }
 
-func dist(ax, ay, bx, by float64) float64 {
-	dx := ax - bx
-	dy := ay - by
-	return math.Sqrt(dx*dx + dy*dy)
-}
-
-// Filtered returns a slot-specific snapshot. Provinces and units the slot
-// cannot see are stripped from the payload; resources are private to the
-// requesting slot.
+// Filtered returns a slot-specific snapshot. Prefer [Batch.Filtered] when
+// publishing state for many slots at the same instant.
 func Filtered(m *matchdom.Match, slot string) *wire.MatchState {
-	provinces, units := For(m, slot, m.GameNow)
-
-	pOut := make([]wire.ProvinceState, 0, len(provinces))
-	for _, p := range m.Provinces {
-		if !provinces[p.ID] {
-			continue
-		}
-		pOut = append(pOut, wire.ProvinceState{
-			ID: p.ID, OwnerID: p.Owner,
-			X: p.X, Y: p.Y, Capital: p.Capital,
-		})
-	}
-	uOut := make([]wire.UnitState, 0, len(units))
-	for _, u := range m.Units {
-		if !units[u.ID] {
-			continue
-		}
-		x, y := u.PositionAt(m.GameNow)
-		uOut = append(uOut, wire.UnitState{
-			ID: u.ID, OwnerID: u.OwnerSlot, Type: u.Type,
-			X: x, Y: y, HP: u.HP,
-			Origin: u.Origin, Dest: u.Dest,
-			StartedAt: u.StartedAt, ArrivesAt: u.ArrivesAt,
-		})
-	}
-	players := make([]wire.PlayerState, 0, len(m.Players))
-	for _, p := range m.Players {
-		players = append(players, wire.PlayerState{
-			ID: p.Slot, Name: p.Name, Color: p.Color, Alive: p.Alive,
-		})
-	}
-	resources := map[string]wire.ResourcePool{}
-	if r, ok := m.Resources[slot]; ok {
-		resources[slot] = wire.ResourcePool{Manpower: r.Manpower, Food: r.Food, Iron: r.Iron}
-	}
-	buildings := []wire.BuildingState{}
-	for _, b := range m.Buildings {
-		if !provinces[b.Province] {
-			continue
-		}
-		buildings = append(buildings, wire.BuildingState{
-			Type: b.Type, Province: b.Province, Owner: b.OwnerSlot,
-		})
-	}
-	queues := QueueState(m, slot)
-	return &wire.MatchState{
-		MatchID:   m.ID,
-		Tick:      m.Tick,
-		GameTime:  m.GameNow,
-		Provinces: pOut,
-		Units:     uOut,
-		Players:   players,
-		Resources: resources,
-		Buildings: buildings,
-		Queues:    queues,
-		Diplomacy: TreatyStates(m),
-		Pacts:     PactsFor(m, slot),
-	}
+	return NewBatch(m).Filtered(slot)
 }
 
 // Snapshot is the un-filtered "public" snapshot used by the persistence
@@ -187,22 +152,7 @@ func Snapshot(m *matchdom.Match) *wire.MatchState {
 	units := make([]wire.UnitState, 0, len(m.Units))
 	for _, u := range m.Units {
 		x, y := u.PositionAt(m.GameNow)
-		units = append(units, wire.UnitState{
-			ID: u.ID, OwnerID: u.OwnerSlot, Type: u.Type,
-			X: x, Y: y, HP: u.HP,
-			Origin: u.Origin, Dest: u.Dest,
-			StartedAt: u.StartedAt, ArrivesAt: u.ArrivesAt,
-		})
-	}
-	players := make([]wire.PlayerState, 0, len(m.Players))
-	for _, p := range m.Players {
-		players = append(players, wire.PlayerState{
-			ID: p.Slot, Name: p.Name, Color: p.Color, Alive: p.Alive,
-		})
-	}
-	resources := map[string]wire.ResourcePool{}
-	for slot, r := range m.Resources {
-		resources[slot] = wire.ResourcePool{Manpower: r.Manpower, Food: r.Food, Iron: r.Iron}
+		units = append(units, matchdom.UnitToWire(u, x, y))
 	}
 	buildings := make([]wire.BuildingState, 0, len(m.Buildings))
 	for _, b := range m.Buildings {
@@ -210,17 +160,20 @@ func Snapshot(m *matchdom.Match) *wire.MatchState {
 			Type: b.Type, Province: b.Province, Owner: b.OwnerSlot,
 		})
 	}
-	queues := QueueState(m, "")
+	resources := map[string]wire.ResourcePool{}
+	for slot, r := range m.Resources {
+		resources[slot] = wire.ResourcePool{Manpower: r.Manpower, Food: r.Food, Iron: r.Iron}
+	}
 	return &wire.MatchState{
 		MatchID:   m.ID,
 		Tick:      m.Tick,
 		GameTime:  m.GameNow,
 		Provinces: provinces,
 		Units:     units,
-		Players:   players,
+		Players:   playerStates(m),
 		Resources: resources,
 		Buildings: buildings,
-		Queues:    queues,
+		Queues:    QueueState(m, ""),
 		Diplomacy: TreatyStates(m),
 		Pacts:     PactsFor(m, ""),
 	}

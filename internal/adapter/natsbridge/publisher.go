@@ -69,6 +69,20 @@ func (p *Publisher) PublishSlotEvent(_ context.Context, matchID, slot string, pa
 	return p.NC.Publish(SlotEventSubject(matchID, slot), payload)
 }
 
+// PublishFinalState publishes the one-shot post-game snapshot.
+func (p *Publisher) PublishFinalState(_ context.Context, matchID string, payload []byte) error {
+	return p.NC.Publish(FinalStateSubject(matchID), payload)
+}
+
+// PublishEndMatch asks the engine to force-end a hosted match.
+func (p *Publisher) PublishEndMatch(_ context.Context, payload EndMatchPayload) error {
+	raw, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+	return p.NC.Publish(EndMatchSubject(payload.MatchID), raw)
+}
+
 // LookupUserSlot is exported for callers (gateway) that need to resolve a
 // user's slot before subscribing to per-slot subjects. The lookup itself
 // lives in the redisrepo adapter; this is a re-export trampoline so the

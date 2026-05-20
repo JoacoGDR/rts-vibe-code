@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { authApi, matchesApi } from "../../api";
 import { useAppStore } from "../../app/store";
 import type { MatchView } from "../../types/api";
@@ -15,35 +15,41 @@ interface MatchSocketState {
 export function useMatchSocket(matchID: string): MatchSocketState {
   const [info, setInfo] = useState<MatchView | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const socketRef = useRef<GameSocket | null>(null);
-  const setMatchState = useAppStore((s) => s.setMatchState);
+  const [socket, setSocket] = useState<GameSocket | null>(null);
+  const clearMatchUI = useAppStore((s) => s.clearMatchUI);
 
   useEffect(() => {
     let alive = true;
+    setSocket(null);
+    setErr(null);
+
     (async () => {
       try {
         const fresh = await matchesApi.get(matchID);
         if (!alive) return;
         setInfo(fresh);
         const tk = await authApi.wsTicket();
-        const socket = new GameSocket(tk.ticket, matchID);
-        await socket.connect();
+        const gameSocket = new GameSocket(tk.ticket, matchID);
+        await gameSocket.connect();
         if (!alive) {
-          socket.close();
+          gameSocket.close();
           return;
         }
-        socketRef.current = socket;
+        setSocket(gameSocket);
       } catch (e) {
         if (alive) setErr(String(e));
       }
     })();
+
     return () => {
       alive = false;
-      socketRef.current?.close();
-      socketRef.current = null;
-      setMatchState(null);
+      setSocket((prev) => {
+        prev?.close();
+        return null;
+      });
+      clearMatchUI();
     };
-  }, [matchID, setMatchState]);
+  }, [matchID, clearMatchUI]);
 
-  return { info, err, socket: socketRef.current };
+  return { info, err, socket };
 }

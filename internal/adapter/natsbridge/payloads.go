@@ -32,3 +32,10 @@ type StartPayload struct {
 type ResyncPayload struct {
 	MatchID string `json:"match_id"`
 }
+
+// EndMatchPayload asks the engine to tear down a hosted match (used by
+// the abandonment worker when every human has gone silent).
+type EndMatchPayload struct {
+	MatchID string `json:"match_id"`
+	Reason  string `json:"reason,omitempty"`
+}
