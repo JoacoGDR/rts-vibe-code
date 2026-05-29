@@ -82,6 +82,9 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (MatchView, error)
 	if slot == "" {
 		slot = mp.Slots[0].ID
 	}
+	if !slotExistsOnMap(mp, slot) {
+		return MatchView{}, errs.New(errs.BadRequest, "slot does not exist on this map")
+	}
 	m, err := s.repo.Create(ctx, in.Name, mapID, in.UserID, s.speed)
 	if err != nil {
 		return MatchView{}, errs.Wrap(err, errs.Internal, "creating match")
@@ -155,6 +158,9 @@ func (s *Service) Join(ctx context.Context, in JoinInput) (JoinResult, error) {
 	}
 	if chosen == "" || taken[chosen] {
 		return JoinResult{}, errs.New(errs.Conflict, "no free slot")
+	}
+	if !slotExistsOnMap(mp, chosen) {
+		return JoinResult{}, errs.New(errs.BadRequest, "slot does not exist on this map")
 	}
 	color := slotColor(mp, chosen)
 	if err := s.repo.AddPlayer(ctx, lobbydom.Player{
@@ -234,4 +240,13 @@ func slotColor(mp *maps.Map, slotID string) string {
 		}
 	}
 	return "#888888"
+}
+
+func slotExistsOnMap(mp *maps.Map, slotID string) bool {
+	for _, s := range mp.Slots {
+		if s.ID == slotID {
+			return true
+		}
+	}
+	return false
 }

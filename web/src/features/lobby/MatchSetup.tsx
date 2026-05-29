@@ -7,12 +7,10 @@ interface MatchSetupProps {
   maps: MapDef[];
   selectedSlot: string;
   joinCode: string;
-  openLobby: boolean;
   busy: boolean;
   onNameChange: (v: string) => void;
   onMapChange: (id: string) => void;
   onJoinCodeChange: (v: string) => void;
-  onOpenLobbyChange: (v: boolean) => void;
   onCreate: () => void;
   onJoinByCode: () => void;
 }
@@ -23,12 +21,10 @@ export function MatchSetup({
   maps,
   selectedSlot,
   joinCode,
-  openLobby,
   busy,
   onNameChange,
   onMapChange,
   onJoinCodeChange,
-  onOpenLobbyChange,
   onCreate,
   onJoinByCode,
 }: MatchSetupProps) {
@@ -51,16 +47,8 @@ export function MatchSetup({
       <p className="muted match-setup__slot">
         Nation: <strong>{selectedSlot}</strong>
       </p>
-      <label className="field field--checkbox">
-        <input
-          type="checkbox"
-          checked={openLobby}
-          onChange={(e) => onOpenLobbyChange(e.target.checked)}
-        />
-        Open lobby (wait for players; empty slots stay empty until start)
-      </label>
       <Button variant="primary" onClick={onCreate} disabled={busy}>
-        {openLobby ? "Create operation" : "Deploy vs AI"}
+        Create operation
       </Button>
 
       <hr className="match-setup__divider" />

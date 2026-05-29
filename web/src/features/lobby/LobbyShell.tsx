@@ -18,13 +18,18 @@ export function LobbyShell() {
   const [busy, setBusy] = useState(false);
   const [name, setName] = useState("My Match");
   const [mapID, setMapID] = useState("classic-4p");
-  const [openLobby, setOpenLobby] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState("red");
   const [filter, setFilter] = useState<LobbyFilter>("all");
   const [joinCode, setJoinCode] = useState("");
   const [selectedMatch, setSelectedMatch] = useState<MatchView | null>(null);
 
-  const selectedMap = useMemo(() => maps.find((m) => m.id === mapID), [maps, mapID]);
+  // When a match is selected in the browser, the center panel shows that match's map.
+  // When no match is selected, it falls back to the create-form map.
+  const displayedMapID = selectedMatch ? selectedMatch.map_id : mapID;
+  const displayedMap = useMemo(
+    () => maps.find((m) => m.id === displayedMapID),
+    [maps, displayedMapID],
+  );
 
   async function refresh() {
     try {
@@ -67,9 +72,7 @@ export function LobbyShell() {
     setBusy(true);
     setErr(null);
     try {
-      const match = await matchesApi.create(name, mapID, selectedSlot, {
-        autoStart: !openLobby,
-      });
+      const match = await matchesApi.create(name, mapID, selectedSlot);
       navigate(`/match/${match.id}`);
     } catch (e) {
       setErr(e instanceof ApiError ? e.message : String(e));
@@ -82,6 +85,14 @@ export function LobbyShell() {
     setBusy(true);
     setErr(null);
     try {
+      const matchToJoin = matches.find((m) => m.id === id);
+      const matchMap = maps.find((m) => m.id === matchToJoin?.map_id);
+      const slotExists = matchMap?.slots.some((s) => s.id === selectedSlot);
+      if (!slotExists) {
+        setErr("Selected slot does not exist on this map — pick a valid nation first.");
+        setBusy(false);
+        return;
+      }
       await matchesApi.join(id, selectedSlot);
       navigate(`/match/${id}`);
     } catch (e) {
@@ -129,14 +140,14 @@ export function LobbyShell() {
           userId={session?.user.id}
         />
         <div className="lobby-shell__center">
-          <MapPreview map={selectedMap} />
+          <MapPreview map={displayedMap} />
           <NationPicker
-            map={selectedMap}
+            map={displayedMap}
             selectedSlot={selectedSlot}
             onSelectSlot={setSelectedSlot}
             match={selectedMatch}
           />
-          <SlotGrid map={selectedMap} match={selectedMatch} />
+          <SlotGrid map={displayedMap} match={selectedMatch} />
         </div>
         <MatchSetup
           name={name}
@@ -144,7 +155,6 @@ export function LobbyShell() {
           maps={maps}
           selectedSlot={selectedSlot}
           joinCode={joinCode}
-          openLobby={openLobby}
           busy={busy}
           onNameChange={setName}
           onMapChange={(id) => {
@@ -153,7 +163,6 @@ export function LobbyShell() {
             if (m?.slots[0]) setSelectedSlot(m.slots[0].id);
           }}
           onJoinCodeChange={setJoinCode}
-          onOpenLobbyChange={setOpenLobby}
           onCreate={create}
           onJoinByCode={joinByCode}
         />

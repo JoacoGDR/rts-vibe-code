@@ -34,6 +34,7 @@ export function GameBrowser({
   onJoin,
   onLeave,
   busy,
+  userId,
 }: GameBrowserProps) {
   return (
     <section className="game-browser">
@@ -54,36 +55,39 @@ export function GameBrowser({
         <p className="muted">No matches in this filter.</p>
       ) : (
         <ul className="game-browser__list">
-          {matches.map((m) => (
-            <li
-              key={m.id}
-              className={selectedMatchId === m.id ? "selected" : ""}
-              onClick={() => onSelectMatch(m)}
-            >
-              <div className="game-browser__row">
-                <strong>{m.name}</strong>
-                <Badge variant={statusVariant(m.status)}>{m.status}</Badge>
-              </div>
-              <span className="muted game-browser__meta">
-                {m.map_id} · {m.players.length} commander(s)
-              </span>
-              <div className="game-browser__actions">
-                <Button variant="ghost" size="sm" onClick={() => onEnter(m.id)}>
-                  Enter
-                </Button>
-                {m.status === "waiting" && (
-                  <>
+          {matches.map((m) => {
+            const isMember = userId ? m.players.some((p) => p.user_id === userId) : false;
+            return (
+              <li
+                key={m.id}
+                className={selectedMatchId === m.id ? "selected" : ""}
+                onClick={() => onSelectMatch(m)}
+              >
+                <div className="game-browser__row">
+                  <strong>{m.name}</strong>
+                  <Badge variant={statusVariant(m.status)}>{m.status}</Badge>
+                </div>
+                <span className="muted game-browser__meta">
+                  {m.map_id} · {m.players.length} commander(s)
+                </span>
+                <div className="game-browser__actions">
+                  <Button variant="ghost" size="sm" onClick={() => onEnter(m.id)}>
+                    Enter
+                  </Button>
+                  {m.status === "waiting" && !isMember && (
                     <Button variant="primary" size="sm" onClick={() => onJoin(m.id)} disabled={busy}>
                       Join
                     </Button>
+                  )}
+                  {m.status === "waiting" && isMember && (
                     <Button variant="secondary" size="sm" onClick={() => onLeave(m.id)} disabled={busy}>
                       Leave
                     </Button>
-                  </>
-                )}
-              </div>
-            </li>
-          ))}
+                  )}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>
