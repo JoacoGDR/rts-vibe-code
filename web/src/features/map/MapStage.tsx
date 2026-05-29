@@ -53,6 +53,7 @@ export function MapStage({
   const setDragPreview = useAppStore((s) => s.setDragPreview);
   const setSelection = useAppStore((s) => s.setSelection);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [panningDisabled, setPanningDisabled] = useState(false);
   const layerRef = useRef<HTMLDivElement>(null);
   const pendingRef = useRef<PendingPointer | null>(null);
   const graph = useMemo(() => (mapDef ? buildGraph(mapDef) : null), [mapDef]);
@@ -153,6 +154,7 @@ export function MapStage({
 
   const handleDragStart = useCallback(
     (unit: UnitState, pointerId: number, shiftKey: boolean) => {
+      setPanningDisabled(false);
       setDrag({ unitId: unit.id, pointerId, shiftHeld: shiftKey });
       onSelectUnit(unit);
     },
@@ -166,6 +168,8 @@ export function MapStage({
       const { x, y } = clientToWorld(e.clientX, e.clientY, rect, mapW, mapH);
       const unit = pickOwnedUnit(matchState.units, ownSlot, x, y);
       if (unit) {
+        e.stopPropagation();
+        setPanningDisabled(true);
         pendingRef.current = {
           unit,
           clientX: e.clientX,
@@ -190,6 +194,7 @@ export function MapStage({
     (e: React.PointerEvent) => {
       const pending = pendingRef.current;
       if (pending && pending.pointerId === e.pointerId) {
+        e.stopPropagation();
         if (pointerMovedEnough(pending.clientX, pending.clientY, e.clientX, e.clientY)) {
           pendingRef.current = null;
           handleDragStart(pending.unit, pending.pointerId, pending.shiftKey);
@@ -207,7 +212,9 @@ export function MapStage({
     (e: React.PointerEvent) => {
       const pending = pendingRef.current;
       if (!pending || pending.pointerId !== e.pointerId) return;
+      e.stopPropagation();
       pendingRef.current = null;
+      setPanningDisabled(false);
       if (!pointerMovedEnough(pending.clientX, pending.clientY, e.clientX, e.clientY)) {
         onSelectUnit(pending.unit);
       }
@@ -218,6 +225,7 @@ export function MapStage({
   const handleLayerPointerLeave = useCallback(() => {
     setHoveredId(null);
     pendingRef.current = null;
+    setPanningDisabled(false);
   }, []);
 
   const hoveredProvince = useMemo(
@@ -236,7 +244,7 @@ export function MapStage({
 
   return (
     <div className="map-stage">
-      <TransformWrapper minScale={0.35} maxScale={8} wheel={{ step: 0.08 }}>
+      <TransformWrapper minScale={0.35} maxScale={8} wheel={{ step: 0.08 }} panning={{ disabled: panningDisabled || !!drag }}>
         <TransformComponent wrapperClass="map-transform-wrapper" contentClass="map-transform-content">
           <div
             ref={layerRef}

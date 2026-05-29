@@ -54,7 +54,7 @@ export interface MatchStatsView {
 export interface MapDef {
   id: string;
   name: string;
-  provinces: { id: string; x: number; y: number; name?: string }[];
+  provinces: { id: string; x: number; y: number; name?: string; home_slot?: string }[];
   edges: { from: string; to: string }[];
   slots: { id: string; color: string; capital: string }[];
   starting_units: { slot: string; type: string; province: string; hp?: number }[];

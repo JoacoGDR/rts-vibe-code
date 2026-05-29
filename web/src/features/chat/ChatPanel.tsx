@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { chatApi } from "../../api";
 import { useAppStore } from "../../app/store";
 import type { ChatInbound } from "../../types/wire";
 import type { GameSocket } from "../match/socket";
+
+const NEAR_BOTTOM_THRESHOLD_PX = 60;
 
 interface Props {
   matchID: string;
@@ -19,6 +21,8 @@ export function ChatPanel({ matchID, socket, ownSlot }: Props) {
   const resetChat = useAppStore((s) => s.resetChat);
   const [channel, setChannel] = useState<Channel>("world");
   const [draft, setDraft] = useState("");
+  const listRef = useRef<HTMLUListElement>(null);
+  const isNearBottom = useRef(true);
 
   // Reset the local chat history when entering a different match.
   useEffect(() => {
@@ -38,6 +42,20 @@ export function ChatPanel({ matchID, socket, ownSlot }: Props) {
     () => messages.filter((m) => filterByChannel(m, channel, session?.user.id)),
     [messages, channel, session?.user.id],
   );
+
+  // Auto-scroll to bottom when new messages arrive, but only if the user
+  // is already near the bottom so manual scrolling up to read history is preserved.
+  useEffect(() => {
+    if (isNearBottom.current && listRef.current) {
+      listRef.current.scrollTop = listRef.current.scrollHeight;
+    }
+  }, [visible.length]);
+
+  function handleScroll() {
+    if (!listRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = listRef.current;
+    isNearBottom.current = scrollHeight - scrollTop - clientHeight < NEAR_BOTTOM_THRESHOLD_PX;
+  }
 
   function send() {
     if (!socket || !draft.trim()) return;
@@ -65,7 +83,7 @@ export function ChatPanel({ matchID, socket, ownSlot }: Props) {
           </button>
         </div>
       </header>
-      <ul className="log">
+      <ul className="log" ref={listRef} onScroll={handleScroll}>
         {visible.length === 0 && <li className="muted">No messages yet</li>}
         {visible.map((m) => (
           <li key={m.id}>

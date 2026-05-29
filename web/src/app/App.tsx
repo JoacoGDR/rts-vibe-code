@@ -2,6 +2,7 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-
 import { Button } from "../components/ui";
 import { Login } from "../features/auth/Login";
 import { useAuth } from "../features/auth/useAuth";
+import { CreateMatchView } from "../features/lobby/CreateMatchView";
 import { Lobby } from "../features/lobby/Lobby";
 import { MatchView } from "../features/match/MatchView";
 import { NotificationBell } from "../features/notifications/NotificationBell";
@@ -41,6 +42,12 @@ export function App() {
           path="/lobby"
           element={
             session ? <Lobby /> : <Navigate to="/login" replace state={{ from: location }} />
+          }
+        />
+        <Route
+          path="/lobby/create"
+          element={
+            session ? <CreateMatchView /> : <Navigate to="/login" replace state={{ from: location }} />
           }
         />
         <Route

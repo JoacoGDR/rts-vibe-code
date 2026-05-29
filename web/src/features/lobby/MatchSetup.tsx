@@ -6,13 +6,10 @@ interface MatchSetupProps {
   mapID: string;
   maps: MapDef[];
   selectedSlot: string;
-  joinCode: string;
   busy: boolean;
   onNameChange: (v: string) => void;
   onMapChange: (id: string) => void;
-  onJoinCodeChange: (v: string) => void;
   onCreate: () => void;
-  onJoinByCode: () => void;
 }
 
 export function MatchSetup({
@@ -20,13 +17,10 @@ export function MatchSetup({
   mapID,
   maps,
   selectedSlot,
-  joinCode,
   busy,
   onNameChange,
   onMapChange,
-  onJoinCodeChange,
   onCreate,
-  onJoinByCode,
 }: MatchSetupProps) {
   return (
     <Panel title="Match setup" className="match-setup">
@@ -49,20 +43,6 @@ export function MatchSetup({
       </p>
       <Button variant="primary" onClick={onCreate} disabled={busy}>
         Create operation
-      </Button>
-
-      <hr className="match-setup__divider" />
-
-      <label className="field">
-        Join by match ID
-        <input
-          value={joinCode}
-          onChange={(e) => onJoinCodeChange(e.target.value)}
-          placeholder="uuid"
-        />
-      </label>
-      <Button variant="secondary" onClick={onJoinByCode} disabled={busy || !joinCode.trim()}>
-        Join operation
       </Button>
     </Panel>
   );

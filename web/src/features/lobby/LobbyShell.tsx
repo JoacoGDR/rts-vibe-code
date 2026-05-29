@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ApiError, mapsApi, matchesApi } from "../../api";
 import { useAppStore } from "../../app/store";
+import { Button } from "../../components/ui";
 import type { MapDef, MatchView } from "../../types/api";
 import { GameBrowser, type LobbyFilter } from "./GameBrowser";
 import { MapPreview } from "./MapPreview";
-import { MatchSetup } from "./MatchSetup";
 import { NationPicker } from "./NationPicker";
 import { SlotGrid } from "./SlotGrid";
 
@@ -16,19 +16,14 @@ export function LobbyShell() {
   const [maps, setMaps] = useState<MapDef[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [name, setName] = useState("My Match");
-  const [mapID, setMapID] = useState("classic-4p");
   const [selectedSlot, setSelectedSlot] = useState("red");
   const [filter, setFilter] = useState<LobbyFilter>("all");
   const [joinCode, setJoinCode] = useState("");
   const [selectedMatch, setSelectedMatch] = useState<MatchView | null>(null);
 
-  // When a match is selected in the browser, the center panel shows that match's map.
-  // When no match is selected, it falls back to the create-form map.
-  const displayedMapID = selectedMatch ? selectedMatch.map_id : mapID;
   const displayedMap = useMemo(
-    () => maps.find((m) => m.id === displayedMapID),
-    [maps, displayedMapID],
+    () => maps.find((m) => m.id === selectedMatch?.map_id),
+    [maps, selectedMatch],
   );
 
   async function refresh() {
@@ -36,10 +31,6 @@ export function LobbyShell() {
       const [ms, mp] = await Promise.all([matchesApi.list(), mapsApi.list()]);
       setMatches(ms);
       setMaps(mp);
-      if (mp.length > 0 && !mp.find((m) => m.id === mapID)) {
-        setMapID(mp[0].id);
-        setSelectedSlot(mp[0].slots[0]?.id ?? "red");
-      }
     } catch (e) {
       setErr(e instanceof ApiError ? e.message : String(e));
     }
@@ -67,19 +58,6 @@ export function LobbyShell() {
       }
     });
   }, [matches, filter, session?.user.id]);
-
-  async function create() {
-    setBusy(true);
-    setErr(null);
-    try {
-      const match = await matchesApi.create(name, mapID, selectedSlot);
-      navigate(`/match/${match.id}`);
-    } catch (e) {
-      setErr(e instanceof ApiError ? e.message : String(e));
-    } finally {
-      setBusy(false);
-    }
-  }
 
   async function join(id: string) {
     setBusy(true);
@@ -125,22 +103,44 @@ export function LobbyShell() {
     <div className="lobby-shell">
       <header className="lobby-shell__header">
         <h1 className="war-room-title">War room · Match command</h1>
+        <Button variant="primary" size="sm" onClick={() => navigate("/lobby/create")}>
+          New operation
+        </Button>
       </header>
-      <div className="lobby-shell__grid">
-        <GameBrowser
-          matches={filtered}
-          filter={filter}
-          onFilterChange={setFilter}
-          selectedMatchId={selectedMatch?.id ?? null}
-          onSelectMatch={setSelectedMatch}
-          onEnter={(id) => navigate(`/match/${id}`)}
-          onJoin={join}
-          onLeave={leave}
-          busy={busy}
-          userId={session?.user.id}
-        />
+      <div className="lobby-shell__grid lobby-shell__grid--two-col">
+        <div className="lobby-shell__left">
+          <GameBrowser
+            matches={filtered}
+            filter={filter}
+            onFilterChange={setFilter}
+            selectedMatchId={selectedMatch?.id ?? null}
+            onSelectMatch={setSelectedMatch}
+            onEnter={(id) => navigate(`/match/${id}`)}
+            onJoin={join}
+            onLeave={leave}
+            busy={busy}
+            userId={session?.user.id}
+          />
+          <div className="lobby-shell__join-by-code">
+            <label className="field">
+              Join by match ID
+              <input
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value)}
+                placeholder="uuid"
+              />
+            </label>
+            <Button variant="secondary" size="sm" onClick={joinByCode} disabled={busy || !joinCode.trim()}>
+              Join operation
+            </Button>
+          </div>
+        </div>
         <div className="lobby-shell__center">
-          <MapPreview map={displayedMap} />
+          <MapPreview
+            map={displayedMap}
+            selectedSlot={selectedSlot}
+            players={selectedMatch?.players.map((p) => ({ slot: p.slot, color: p.color }))}
+          />
           <NationPicker
             map={displayedMap}
             selectedSlot={selectedSlot}
@@ -149,25 +149,9 @@ export function LobbyShell() {
           />
           <SlotGrid map={displayedMap} match={selectedMatch} />
         </div>
-        <MatchSetup
-          name={name}
-          mapID={mapID}
-          maps={maps}
-          selectedSlot={selectedSlot}
-          joinCode={joinCode}
-          busy={busy}
-          onNameChange={setName}
-          onMapChange={(id) => {
-            setMapID(id);
-            const m = maps.find((x) => x.id === id);
-            if (m?.slots[0]) setSelectedSlot(m.slots[0].id);
-          }}
-          onJoinCodeChange={setJoinCode}
-          onCreate={create}
-          onJoinByCode={joinByCode}
-        />
       </div>
       {err && <p className="err lobby-shell__err">{err}</p>}
     </div>
   );
 }
+
