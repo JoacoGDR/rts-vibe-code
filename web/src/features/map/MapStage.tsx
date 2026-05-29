@@ -13,6 +13,7 @@ import {
 } from "../../lib/pathfind";
 import type { MapDef } from "../../types/api";
 import type { ProvinceState, UnitState } from "../../types/wire";
+import { GraphOverlay } from "./GraphOverlay";
 import { PathOverlay } from "./PathOverlay";
 import { SvgProvinceMap } from "./SvgProvinceMap";
 import { UnitOverlay } from "./UnitOverlay";
@@ -85,7 +86,7 @@ export function MapStage({
       const rect = layerRef.current.getBoundingClientRect();
       const { x, y } = clientToWorld(clientX, clientY, rect, mapW, mapH);
       const target = snapTarget(graph, x, y);
-      const legs = route(graph, unit.x, unit.y, target);
+      const legs = route(graph, unit.x, unit.y, target, unit.origin, unit.dest);
       if (!legs) {
         setDragPreview(null);
         return;
@@ -265,6 +266,7 @@ export function MapStage({
               hoveredProvinceId={hoveredId}
               selectedProvinceId={selectedProvinceId}
             />
+            <GraphOverlay width={mapW} height={mapH} graph={graph} />
             <PathOverlay
               width={mapW}
               height={mapH}

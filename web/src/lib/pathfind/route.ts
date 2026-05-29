@@ -54,8 +54,51 @@ function astar(g: PathGraph, start: string, goal: string): string[] | null {
   return null;
 }
 
-export function route(g: PathGraph, fromX: number, fromY: number, target: Target): Leg[] | null {
-  const startProv = nearestProvince(fromX, fromY, g);
+function nearestProvince(x: number, y: number, g: PathGraph): string {
+  let best = "";
+  let bestD = Infinity;
+  for (const [id, c] of Object.entries(g.coords)) {
+    const d = Math.hypot(x - c.x, y - c.y);
+    if (d < bestD) {
+      bestD = d;
+      best = id;
+    }
+  }
+  return best;
+}
+
+// resolveStartOnEdge constrains the routing start province to one of the two
+// known edge endpoints when a unit is mid-flight, preventing A* from starting
+// at a geometrically closer but topologically unconnected province.
+function resolveStartOnEdge(
+  g: PathGraph,
+  x: number,
+  y: number,
+  edgeFrom?: string,
+  edgeTo?: string,
+): string {
+  if (!edgeFrom || !edgeTo || edgeFrom === edgeTo) {
+    return nearestProvince(x, y, g);
+  }
+  const coordA = g.coords[edgeFrom];
+  const coordB = g.coords[edgeTo];
+  if (!coordA || !coordB) {
+    return nearestProvince(x, y, g);
+  }
+  const distA = Math.hypot(x - coordA.x, y - coordA.y);
+  const distB = Math.hypot(x - coordB.x, y - coordB.y);
+  return distA <= distB ? edgeFrom : edgeTo;
+}
+
+export function route(
+  g: PathGraph,
+  fromX: number,
+  fromY: number,
+  target: Target,
+  edgeFrom?: string,
+  edgeTo?: string,
+): Leg[] | null {
+  const startProv = resolveStartOnEdge(g, fromX, fromY, edgeFrom, edgeTo);
   const goalProv = goalProvince(target);
   if (!startProv || !goalProv) return null;
 
@@ -112,17 +155,4 @@ export function route(g: PathGraph, fromX: number, fromY: number, target: Target
     });
   }
   return legs;
-}
-
-function nearestProvince(x: number, y: number, g: PathGraph): string {
-  let best = "";
-  let bestD = Infinity;
-  for (const [id, c] of Object.entries(g.coords)) {
-    const d = Math.hypot(x - c.x, y - c.y);
-    if (d < bestD) {
-      bestD = d;
-      best = id;
-    }
-  }
-  return best;
 }

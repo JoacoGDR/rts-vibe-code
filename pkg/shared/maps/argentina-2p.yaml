@@ -1,84 +1,79 @@
 id: argentina-2p
 name: "Argentina — Norte vs Sur"
-rules_summary: "2 commanders · 24 provincias · Norte contra Sur"
+rules_summary: "2 commanders · 23 provinces · Norte contra Sur"
 provinces:
-  - { id: AR-A, name: 'Salta', x: 147.3, y: 47.6, home_slot: north }
-  - { id: AR-B, name: 'Buenos Aires', x: 131.8, y: 96.1, home_slot: south }
-  - { id: AR-C, name: 'Ciudad de Buenos Aires', x: 274.3, y: 263.3, home_slot: south }
-  - { id: AR-D, name: 'San Luis', x: 134.9, y: 248.8, home_slot: south }
-  - { id: AR-E, name: 'Entre Ríos', x: 259.2, y: 209.5, home_slot: north }
-  - { id: AR-F, name: 'La Rioja', x: 112.1, y: 161.9, home_slot: north }
-  - { id: AR-G, name: 'Santiago del Estero', x: 183.6, y: 121.3, home_slot: north }
-  - { id: AR-H, name: 'Chaco', x: 230.2, y: 84.7, home_slot: north }
-  - { id: AR-J, name: 'San Juan', x: 89.2, y: 173.6, home_slot: south }
-  - { id: AR-K, name: 'Catamarca', x: 119.2, y: 116.2, home_slot: north }
-  - { id: AR-L, name: 'La Pampa', x: 140.2, y: 320.7, home_slot: south }
-  - { id: AR-M, name: 'Mendoza', x: 91.4, y: 267.5, home_slot: south }
-  - { id: AR-N, name: 'Misiones', x: 339.6, y: 99.8, home_slot: north }
-  - { id: AR-P, name: 'Formosa', x: 247.0, y: 57.2, home_slot: north }
-  - { id: AR-Q, name: 'Neuquén', x: 63.1, y: 354.2, home_slot: south }
-  - { id: AR-R, name: 'Río Negro', x: 113.0, y: 381.3, home_slot: south }
-  - { id: AR-S, name: 'Santa Fe', x: 230.5, y: 190.9, home_slot: north }
-  - { id: AR-T, name: 'Tucumán', x: 149.1, y: 104.6, home_slot: north }
-  - { id: AR-U, name: 'Chubut', x: 103.7, y: 483.5, home_slot: south }
-  - { id: AR-V, name: 'Tierra del Fuego', x: 46.9, y: 385.6, home_slot: south }
-  - { id: AR-W, name: 'Corrientes', x: 288.6, y: 144.6, home_slot: north }
-  - { id: AR-X, name: 'Córdoba', x: 178.1, y: 212.3, home_slot: south }
-  - { id: AR-Y, name: 'Jujuy', x: 142.7, y: 27.8, home_slot: north }
-  - { id: AR-Z, name: 'Santa Cruz', x: 71.1, y: 622.0, home_slot: south }
+  - { id: Salta, name: 'Salta', x: 147.3, y: 47.6, home_slot: north }
+  - { id: Buenos-Aires, name: 'Buenos Aires', x: 274.3, y: 263.3, home_slot: south }
+  - { id: San-Luis, name: 'San Luis', x: 134.9, y: 248.8, home_slot: south }
+  - { id: Entre-Rios, name: 'Entre Ríos', x: 259.2, y: 209.5, home_slot: north }
+  - { id: La-Rioja, name: 'La Rioja', x: 112.1, y: 161.9, home_slot: north }
+  - { id: Santiago-del-Estero, name: 'Santiago del Estero', x: 183.6, y: 121.3, home_slot: north }
+  - { id: Chaco, name: 'Chaco', x: 230.2, y: 84.7, home_slot: north }
+  - { id: San-Juan, name: 'San Juan', x: 89.2, y: 173.6, home_slot: south }
+  - { id: Catamarca, name: 'Catamarca', x: 119.2, y: 116.2, home_slot: north }
+  - { id: La-Pampa, name: 'La Pampa', x: 140.2, y: 320.7, home_slot: south }
+  - { id: Mendoza, name: 'Mendoza', x: 91.4, y: 267.5, home_slot: south }
+  - { id: Misiones, name: 'Misiones', x: 339.6, y: 99.8, home_slot: north }
+  - { id: Formosa, name: 'Formosa', x: 247.0, y: 57.2, home_slot: north }
+  - { id: Neuquen, name: 'Neuquén', x: 63.1, y: 354.2, home_slot: south }
+  - { id: Rio-Negro, name: 'Río Negro', x: 113.0, y: 381.3, home_slot: south }
+  - { id: Santa-Fe, name: 'Santa Fe', x: 230.5, y: 190.9, home_slot: north }
+  - { id: Tucuman, name: 'Tucumán', x: 149.1, y: 104.6, home_slot: north }
+  - { id: Chubut, name: 'Chubut', x: 103.7, y: 483.5, home_slot: south }
+  - { id: Tierra-del-Fuego, name: 'Tierra del Fuego', x: 46.9, y: 385.6, home_slot: south }
+  - { id: Corrientes, name: 'Corrientes', x: 288.6, y: 144.6, home_slot: north }
+  - { id: Cordoba, name: 'Córdoba', x: 178.1, y: 212.3, home_slot: south }
+  - { id: Jujuy, name: 'Jujuy', x: 142.7, y: 27.8, home_slot: north }
+  - { id: Santa-Cruz, name: 'Santa Cruz', x: 71.1, y: 622.0, home_slot: south }
 edges:
-  - { from: AR-A, to: AR-G }
-  - { from: AR-A, to: AR-H }
-  - { from: AR-A, to: AR-J }
-  - { from: AR-A, to: AR-K }
-  - { from: AR-A, to: AR-P }
-  - { from: AR-A, to: AR-T }
-  - { from: AR-A, to: AR-Y }
-  - { from: AR-B, to: AR-C }
-  - { from: AR-B, to: AR-E }
-  - { from: AR-B, to: AR-L }
-  - { from: AR-B, to: AR-R }
-  - { from: AR-B, to: AR-S }
-  - { from: AR-D, to: AR-F }
-  - { from: AR-D, to: AR-G }
-  - { from: AR-D, to: AR-J }
-  - { from: AR-D, to: AR-L }
-  - { from: AR-D, to: AR-M }
-  - { from: AR-D, to: AR-Q }
-  - { from: AR-D, to: AR-X }
-  - { from: AR-E, to: AR-S }
-  - { from: AR-E, to: AR-W }
-  - { from: AR-F, to: AR-J }
-  - { from: AR-F, to: AR-K }
-  - { from: AR-F, to: AR-X }
-  - { from: AR-G, to: AR-H }
-  - { from: AR-G, to: AR-K }
-  - { from: AR-G, to: AR-S }
-  - { from: AR-G, to: AR-T }
-  - { from: AR-G, to: AR-X }
-  - { from: AR-H, to: AR-P }
-  - { from: AR-H, to: AR-S }
-  - { from: AR-H, to: AR-W }
-  - { from: AR-J, to: AR-K }
-  - { from: AR-J, to: AR-M }
-  - { from: AR-K, to: AR-T }
-  - { from: AR-K, to: AR-X }
-  - { from: AR-L, to: AR-M }
-  - { from: AR-L, to: AR-R }
-  - { from: AR-L, to: AR-S }
-  - { from: AR-M, to: AR-Q }
-  - { from: AR-N, to: AR-W }
-  - { from: AR-Q, to: AR-R }
-  - { from: AR-Q, to: AR-X }
-  - { from: AR-R, to: AR-U }
-  - { from: AR-S, to: AR-W }
-  - { from: AR-S, to: AR-X }
-  - { from: AR-T, to: AR-X }
-  - { from: AR-U, to: AR-Z }
-  - { from: AR-V, to: AR-Z }
+  - { from: Salta, to: Santiago-del-Estero }
+  - { from: Salta, to: Chaco }
+  - { from: Salta, to: Catamarca }
+  - { from: Salta, to: Formosa }
+  - { from: Salta, to: Tucuman }
+  - { from: Salta, to: Jujuy }
+  - { from: Buenos-Aires, to: Entre-Rios }
+  - { from: Buenos-Aires, to: La-Pampa }
+  - { from: Buenos-Aires, to: Rio-Negro }
+  - { from: Buenos-Aires, to: Santa-Fe }
+  - { from: Buenos-Aires, to: Cordoba }
+  - { from: San-Luis, to: La-Rioja }
+  - { from: San-Luis, to: San-Juan }
+  - { from: San-Luis, to: La-Pampa }
+  - { from: San-Luis, to: Mendoza }
+  - { from: San-Luis, to: Cordoba }
+  - { from: Entre-Rios, to: Santa-Fe }
+  - { from: Entre-Rios, to: Corrientes }
+  - { from: La-Rioja, to: San-Juan }
+  - { from: La-Rioja, to: Catamarca }
+  - { from: La-Rioja, to: Cordoba }
+  - { from: Santiago-del-Estero, to: Chaco }
+  - { from: Santiago-del-Estero, to: Catamarca }
+  - { from: Santiago-del-Estero, to: Santa-Fe }
+  - { from: Santiago-del-Estero, to: Tucuman }
+  - { from: Santiago-del-Estero, to: Cordoba }
+  - { from: Chaco, to: Formosa }
+  - { from: Chaco, to: Santa-Fe }
+  - { from: Chaco, to: Corrientes }
+  - { from: San-Juan, to: Catamarca }
+  - { from: San-Juan, to: Mendoza }
+  - { from: Catamarca, to: Tucuman }
+  - { from: Catamarca, to: Cordoba }
+  - { from: La-Pampa, to: Mendoza }
+  - { from: La-Pampa, to: Rio-Negro }
+  - { from: La-Pampa, to: Santa-Fe }
+  - { from: Mendoza, to: Neuquen }
+  - { from: Misiones, to: Corrientes }
+  - { from: Neuquen, to: Rio-Negro }
+  - { from: Rio-Negro, to: Chubut }
+  - { from: Santa-Fe, to: Corrientes }
+  - { from: Santa-Fe, to: Cordoba }
+  - { from: Tucuman, to: Cordoba }
+  - { from: Chubut, to: Santa-Cruz }
+  - { from: Tierra-del-Fuego, to: Santa-Cruz }
 slots:
-  - { id: north, color: "#c45c26", capital: AR-T }
-  - { id: south, color: "#2d6a9f", capital: AR-C }
+  - { id: north, color: "#c45c26", capital: Tucuman }
+  - { id: south, color: "#2d6a9f", capital: Buenos-Aires }
 starting_units:
-  - { slot: north, type: infantry, province: AR-T, hp: 100 }
-  - { slot: south, type: infantry, province: AR-C, hp: 100 }
+  - { slot: north, type: infantry, province: Tucuman, hp: 100 }
+  - { slot: south, type: infantry, province: Buenos-Aires, hp: 100 }

@@ -90,7 +90,7 @@ func (m *Match) StartNextWaypoint(u *Unit, now time.Time) bool {
 	wp := u.Waypoints[0]
 	u.Waypoints = u.Waypoints[1:]
 	g := pathdom.NewGraph(m.Map)
-	legs, err := g.Route(u.OriginX, u.OriginY, wp)
+	legs, err := g.RouteFromEdge(u.OriginX, u.OriginY, u.Origin, u.Dest, wp)
 	if err != nil {
 		return false
 	}

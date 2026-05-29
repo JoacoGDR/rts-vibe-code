@@ -257,7 +257,7 @@
     </mxGraphModel>
   </diagram>
   <diagram id="pg5-worker" name="5_worker">
-    <mxGraphModel dx="1180" dy="628" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="920" math="0" shadow="0">
+    <mxGraphModel dx="1609" dy="856" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="920" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -298,9 +298,7 @@
           <mxGeometry relative="1" x="0.4824" y="15" as="geometry">
             <mxPoint as="offset" />
             <Array as="points">
-              <mxPoint x="530" y="180" />
-              <mxPoint x="730" y="180" />
-              <mxPoint x="730" y="195" />
+              <mxPoint x="530" y="195" />
             </Array>
             <mxPoint x="530" y="180" as="sourcePoint" />
           </mxGeometry>

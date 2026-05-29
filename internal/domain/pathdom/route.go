@@ -15,9 +15,43 @@ type Leg struct {
 
 var ErrNoRoute = errors.New("no route to target")
 
+// resolveStartOnEdge picks the start province for routing when a unit is
+// mid-flight on a known edge. It constrains the start to one of the two
+// edge endpoints (whichever is closer) rather than the globally nearest
+// province center, preventing routes from jumping to unconnected provinces.
+func (g *Graph) resolveStartOnEdge(x, y float64, edgeFrom, edgeTo string) string {
+	if edgeFrom == "" || edgeTo == "" || edgeFrom == edgeTo {
+		return g.nearestProvinceID(x, y)
+	}
+	coordA, okA := g.coords[edgeFrom]
+	coordB, okB := g.coords[edgeTo]
+	if !okA || !okB {
+		return g.nearestProvinceID(x, y)
+	}
+	distA := math.Hypot(x-coordA.x, y-coordA.y)
+	distB := math.Hypot(x-coordB.x, y-coordB.y)
+	if distA <= distB {
+		return edgeFrom
+	}
+	return edgeTo
+}
+
+// RouteFromEdge plans a path from (fromX,fromY) to target using A*, where the
+// unit is known to be on the edge between edgeFrom and edgeTo. This prevents
+// routing from an incorrect province when the unit's position is geometrically
+// closer to a third province that is not on the traversed edge.
+func (g *Graph) RouteFromEdge(fromX, fromY float64, edgeFrom, edgeTo string, target Target) ([]Leg, error) {
+	startProv := g.resolveStartOnEdge(fromX, fromY, edgeFrom, edgeTo)
+	return g.routeFromProvince(fromX, fromY, startProv, target)
+}
+
 // Route plans a path from (fromX,fromY) to target using A* on provinces.
 func (g *Graph) Route(fromX, fromY float64, target Target) ([]Leg, error) {
 	startProv := g.nearestProvinceID(fromX, fromY)
+	return g.routeFromProvince(fromX, fromY, startProv, target)
+}
+
+func (g *Graph) routeFromProvince(fromX, fromY float64, startProv string, target Target) ([]Leg, error) {
 	goalProv := target.goalProvince()
 
 	if startProv == "" || goalProv == "" {

@@ -49,7 +49,7 @@ func (moveHandler) Apply(m *matchdom.Match, cmd Command) (string, []matchdom.App
 
 	g := pathdom.NewGraph(m.Map)
 	curX, curY := u.PositionAt(now)
-	legs, err := g.Route(curX, curY, target)
+	legs, err := g.RouteFromEdge(curX, curY, u.Origin, u.Dest, target)
 	if err != nil {
 		return "no_route", nil, ErrInvalidDest
 	}
